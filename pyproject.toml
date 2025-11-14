@@ -1,0 +1,28 @@
+[project]
+name = "paperreview"
+version = "0.1.0"
+description = "Paper Review using CrewAI"
+authors = [{ name = "Priya", email = "you@example.com" }]
+requires-python = ">=3.10,<3.14"
+dependencies = [
+    "crewai[tools]>=0.175.0,<1.0.0",
+    "pymupdf>=1.24.0"
+]
+
+[project.scripts]
+paperreview = "src.main:run"
+run_crew = "src.main:run"
+train = "src.main:train"
+replay = "src.main:replay"
+test = "src.main:test"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+# points to your src folder containing the Python packages
+packages = ["src"]
+
+[tool.crewai]
+type = "crew"

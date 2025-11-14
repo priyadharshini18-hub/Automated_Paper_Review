@@ -1,0 +1,32 @@
+text_extractor:
+  description: >
+    Extract text content from the PDF located at {pdf_path}.
+    Use the PDF to Text Extractor tool with pdf_path={pdf_path} and output_path='output/paper_text.txt'.
+    After extraction, read the content from output/paper_text.txt and return the ACTUAL extracted text, not a description.
+  expected_output: >
+    The complete, actual extracted text from the PDF file (not a description or placeholder) ready for further processing or summarization.
+    Return the full text content that was written to output/paper_text.txt.
+  agent: scrapper_agent
+  output_file: output/paper_text.txt
+
+paper_summarizer:
+  description: >
+    Analyze the extracted research paper text provided by the previous task.
+    Create a comprehensive summary with the following sections:
+    1. **Problem Statement**: What problem does this research address?
+    2. **Objectives**: What are the main goals and research questions?
+    3. **Keywords**: Identify the keywords used in the research paper.
+    4. **Methodology**: What methods, techniques, or approaches were used?
+    5. **Results**: What were the key findings and outcomes?
+    6. **Conclusions**: What are the main takeaways and implications?
+    
+    Use the extracted text from the previous task as your input.
+    Format the summary in clear, well-organized sections with headers.
+  expected_output: >
+    A well-structured research paper summary in markdown format with clearly labeled sections:
+    Problem Statement, Objectives, Keywords, Methodology, Results, and Conclusions.
+    Each section should be concise but comprehensive, capturing the essence of the research. Include technical details and key findings.
+  agent: summarizer_agent
+  context:
+    - text_extractor
+  output_file: output/paper_summary.md
