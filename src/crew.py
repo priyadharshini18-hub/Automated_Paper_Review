@@ -28,6 +28,27 @@ class PaperReviewCrew():
             verbose=True
         )
 
+    @agent
+    def critique_agent(self) -> Agent:
+        return Agent(
+            config=self.agents_config['critique_agent'],
+            verbose=True
+        )
+
+    @agent
+    def critique_agent(self) -> Agent:
+        return Agent(
+            config=self.agents_config['critique_agent'],
+            verbose=True
+        )
+
+    @agent
+    def synthesizer_agent(self) -> Agent:
+        return Agent(
+            config=self.agents_config['synthesizer_agent'],
+            verbose=True
+        )
+
     @task
     def text_extractor(self) -> Task:
         return Task(
@@ -38,6 +59,18 @@ class PaperReviewCrew():
     def paper_summarizer(self) -> Task:
         return Task(
             config=self.tasks_config['paper_summarizer'],
+        )
+
+    @task
+    def summary_critique(self) -> Task:
+        return Task(
+            config=self.tasks_config['summary_critique'],
+        )
+
+    @task
+    def final_report_generation(self) -> Task:
+        return Task(
+            config=self.tasks_config['final_report_generation'],
         )
 
     @crew

@@ -30,3 +30,113 @@ paper_summarizer:
   context:
     - text_extractor
   output_file: output/paper_summary.md
+
+summary_critique:
+  description: >
+    Critically evaluate the research paper summary and make a FINAL DECISION.
+    
+    Evaluation criteria:
+    1. **Completeness**: Are all 6 required sections present? (Problem Statement, Objectives, Methodology, Results, Conclusions, Future Work)
+    2. **Clarity of Objectives**: Are the research objectives clearly identified and articulated?
+    3. **Technical Depth**: Does the summary include sufficient technical details (methods, algorithms, metrics, etc.)?
+    4. **Result-Conclusion Alignment**: Are the conclusions properly backed up by the results presented?
+    5. **Overall Coherence**: Does the summary flow logically and make sense as a whole?
+    
+    YOUR DECISION:
+    
+    If the summary meets ALL criteria satisfactorily:
+      Output: "APPROVED!
+      
+      Summary Quality Assessment:
+      - [List what was done well]
+      - [Note strengths]
+      
+      Feedback Notes for Synthesizer:
+      - [Any minor suggestions or highlights to emphasize in final report]
+      - [Areas of particular strength to preserve]"
+    
+    If the summary fails ANY critical criteria:
+      Output: "REJECTED!
+      
+      Critical Issues Found:
+      - [List specific missing or inadequate sections]
+      - [Explain what improvements are needed]
+      - [Provide examples of what should be included]
+      
+      This summary cannot proceed to final report generation.
+      Please address these issues before resubmission."
+    
+    Be thorough, specific, and constructive in your feedback.
+  expected_output: >
+    A markdown-formatted decision document that starts with either "APPROVED!" or "REJECTED!" 
+    followed by detailed feedback organized with clear headers and bullet points.
+    
+    For APPROVED: Include quality assessment and constructive notes for the synthesizer.
+    For REJECTED: Include critical issues and specific improvement requirements.
+  agent: critique_agent
+  context:
+    - paper_summarizer
+  output_file: output/critique_decision.md
+
+final_report_generation:
+  description: >
+    Create a comprehensive, professional paper review report in markdown format 2 pages long atleast.
+    This will be converted to PDF as the final deliverable.
+    
+    You have access to:
+    - The original extracted paper text
+    - The approved summary
+    - The critique feedback and notes
+    
+    Your report should include:
+    
+    # Research Paper Review Report
+    
+    ## Paper Information
+    - Title: [Extract from paper]
+    - Authors: [If available]
+    - Date: [Today's date]
+    
+    ## Executive Summary
+    [High-level overview - 2-3 paragraphs]
+    
+    ## Detailed Analysis
+    
+    ### Problem Statement
+    [From approved summary]
+    
+    ### Research Objectives
+    [From approved summary]
+    
+    ### Methodology
+    [From approved summary, with technical details]
+    
+    ### Key Results
+    [From approved summary]
+    
+    ### Conclusions
+    [From approved summary]
+    
+    ### Future Work
+    [From approved summary]
+    
+    ## Review Assessment
+    [Incorporate the critique feedback notes here]
+    
+    ## Recommendations
+    [Your professional recommendations based on the analysis]
+    
+    ---
+    *Report generated on [date]*
+    
+    Format professionally with proper markdown headers, bullet points, and structure.
+    This markdown will be converted to PDF, so ensure clean formatting.
+  expected_output: >
+    A comprehensive, professionally formatted markdown document that serves as the complete paper review report.
+    The document should be publication-ready and suitable for PDF conversion.
+  agent: synthesizer_agent
+  context:
+    - text_extractor
+    - paper_summarizer
+    - summary_critique
+  output_file: output/final_report.md
