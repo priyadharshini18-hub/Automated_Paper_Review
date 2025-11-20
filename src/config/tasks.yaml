@@ -82,53 +82,53 @@ final_report_generation:
   description: >
     Create a comprehensive, professional paper review report in markdown format 2 pages long atleast.
     This will be converted to PDF as the final deliverable.
-    
+
     You have access to:
     - The original extracted paper text
     - The approved summary
     - The critique feedback and notes
-    
+
     Your report should include:
-    
+
     # Research Paper Review Report
-    
+
     ## Paper Information
     - Title: [Extract from paper]
     - Authors: [If available]
     - Date: [Today's date]
-    
+
     ## Executive Summary
     [High-level overview - 2-3 paragraphs]
-    
+
     ## Detailed Analysis
-    
+
     ### Problem Statement
     [From approved summary]
-    
+
     ### Research Objectives
     [From approved summary]
-    
+
     ### Methodology
     [From approved summary, with technical details]
-    
+
     ### Key Results
-    [From approved summary]
-    
+    [From approved summary, with key results and metrics as per the paper. Make sure to include the numbers/ comparisons in table format if needed.]
+
     ### Conclusions
     [From approved summary]
-    
+
     ### Future Work
     [From approved summary]
-    
+
     ## Review Assessment
     [Incorporate the critique feedback notes here]
-    
+
     ## Recommendations
     [Your professional recommendations based on the analysis]
-    
+
     ---
     *Report generated on [date]*
-    
+
     Format professionally with proper markdown headers, bullet points, and structure.
     This markdown will be converted to PDF, so ensure clean formatting.
   expected_output: >
@@ -140,3 +140,27 @@ final_report_generation:
     - paper_summarizer
     - summary_critique
   output_file: output/final_report.md
+
+pdf_generation:
+  description: >
+    Convert the final markdown report (output/final_report.md) to a professionally formatted PDF document.
+
+    Steps to complete:
+    1. Use the Markdown to PDF Converter tool with markdown_path='output/final_report.md'
+    2. Set output_pdf_path='output/paper_report.pdf'
+    3. Ensure the PDF maintains all formatting including tables, headers, bullet points, and styling
+
+    The tool will automatically:
+    - Convert markdown syntax to formatted PDF
+    - Apply professional styling (headers, tables, colors)
+    - Create proper page layout with margins
+    - Handle tables and special formatting
+
+    Return confirmation of successful PDF creation with the output path.
+  expected_output: >
+    A confirmation message indicating successful PDF generation with the full path to the created PDF file.
+    Example: "Successfully converted output/final_report.md to PDF: output/paper_report.pdf"
+  agent: pdf_generator_agent
+  context:
+    - final_report_generation
+  output_file: output/pdf_generation_log.txt
