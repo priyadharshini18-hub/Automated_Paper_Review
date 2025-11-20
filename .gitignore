@@ -27,7 +27,7 @@ dist/
 uv.lock
 
 # Output files (optional - remove if you want to track outputs)
-output/
+# output/
 
 # IDE specific
 .vscode/

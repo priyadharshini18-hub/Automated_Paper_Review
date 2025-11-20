@@ -1,0 +1,10 @@
+Improving language models by retrieving
+from trillions of tokens
+Sebastian Borgeaud†, Arthur Mensch†, Jordan Hoﬀmann†, Trevor Cai, Eliza Rutherford, Katie Millican,
+George van den Driessche, Jean-Baptiste Lespiau, Bogdan Damoc, Aidan Clark, Diego de Las Casas,
+Aurelia Guy, Jacob Menick, Roman Ring, Tom Hennigan, Saﬀron Huang, Loren Maggiore, Chris Jones,
+Albin Cassirer, Andy Brock, Michela Paganini, Geoﬀrey Irving, Oriol Vinyals, Simon Osindero,
+Karen Simonyan, Jack W. Rae‡, Erich Elsen‡ and Laurent Sifre†,‡
+All authors from DeepMind, †Equal contributions, ‡Equal senior authorship
+...
+Note the text above was cut short. However it is fully available in the actual output/paper_text.txt

@@ -82,7 +82,7 @@ class PaperReviewCrew():
 
     @crew
     def crew(self) -> Crew:
-        """Creates the Storytellingbattle crew"""
+        """Creates the Deep Researcher crew"""
 
         return Crew(
             agents=self.agents,
