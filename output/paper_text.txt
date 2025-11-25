@@ -1,10 +1,247 @@
-Improving language models by retrieving
-from trillions of tokens
+Improving language models by retrieving from trillions of tokens
 Sebastian Borgeaud†, Arthur Mensch†, Jordan Hoﬀmann†, Trevor Cai, Eliza Rutherford, Katie Millican,
 George van den Driessche, Jean-Baptiste Lespiau, Bogdan Damoc, Aidan Clark, Diego de Las Casas,
 Aurelia Guy, Jacob Menick, Roman Ring, Tom Hennigan, Saﬀron Huang, Loren Maggiore, Chris Jones,
 Albin Cassirer, Andy Brock, Michela Paganini, Geoﬀrey Irving, Oriol Vinyals, Simon Osindero,
 Karen Simonyan, Jack W. Rae‡, Erich Elsen‡ and Laurent Sifre†,‡
 All authors from DeepMind, †Equal contributions, ‡Equal senior authorship
-...
-Note the text above was cut short. However it is fully available in the actual output/paper_text.txt
+We enhance auto-regressive language models by conditioning on document chunks retrieved from a
+large corpus, based on local similarity with preceding tokens. With a 2 trillion token database, our
+Retrieval-Enhanced Transformer (Retro) obtains comparable performance to GPT-3 and Jurassic-1
+on the Pile, despite using 25× fewer parameters. After ﬁne-tuning, Retro performance translates to
+downstream knowledge-intensive tasks such as question answering. Retro combines a frozen Bert
+retriever, a diﬀerentiable encoder and a chunked cross-attention mechanism to predict tokens based on
+an order of magnitude more data than what is typically consumed during training. We typically train
+Retro from scratch, yet can also rapidly Retroﬁt pre-trained transformers with retrieval and still
+achieve good performance. Our work opens up new avenues for improving language models through
+explicit memory at unprecedented scale.
+1. Introduction
+Language modelling (LM) is an unsupervised task that consists of modelling the probability of text,
+usually by factorising it into conditional next-token predictions 𝑝(𝑥1, . . . , 𝑥𝑛) = Î
+𝑖𝑝(𝑥𝑖|𝑥<𝑖). Neural
+networks have proven to be powerful language models, ﬁrst in the form of recurrent architectures
+(Graves, 2013; Jozefowicz et al., 2016; Mikolov et al., 2010) and more recently in the form of
+Transformers (Vaswani et al., 2017), that use attention to contextualise the past. Large performance
+improvements have come from increasing the amount of data, training compute, or model parameters.
+Transformers have been scaled from 100 million parameter models in seminal work to over hundred
+billion parameters (Brown et al., 2020; Radford et al., 2019) in the last two years which has led to
+models that do very well on a wide array of tasks in a zero or few-shot formulation. Increasing model
+size predictably improves performance on a wide range of downstream tasks (Kaplan et al., 2020).
+The beneﬁts of increasing the number of parameters come from two factors: additional computations
+at training and inference time, and increased memorization of the training data.
+In this work, we endeavor to decouple these, by exploring eﬃcient means of augmenting language
+models with a massive-scale memory without signiﬁcantly increasing computations. Speciﬁcally, we
+suggest retrieval from a large text database as a complementary path to scaling language models.
+Instead of increasing the size of the model and training on more data, we equip models with the
+ability to directly access a large database to perform predictions—a semi-parametric approach. At
+a high level, our Retrieval Transformer (Retro) model splits the input sequence into chunks and
+retrieves text similar to the previous chunk to improve the predictions in the current chunk. Existing
+retrieval for language modelling work only considers small transformers (100 millions parameters)
+and databases of limited size (up to billions of tokens) (Guu et al., 2020; Khandelwal et al., 2020;
+Lewis et al., 2020; Yogatama et al., 2021). To our knowledge, our work is the ﬁrst to show the beneﬁts
+of scaling the retrieval database to trillions of tokens for large parametric language models. Our main
+Corresponding authors: {sborgeaud|amensch|jordanhoﬀmann|sifre}@deepmind.com
+arXiv:2112.04426v3  [cs.CL]  7 Feb 2022
+Improving language models by retrieving from trillions of tokens
+200 400 800 1600
+7500
+Number of Non-Embedding Params (M)
+0.7
+0.8
+0.9
+1.0
+C4 Eval bits-per-byte
+172M
+425M
+1.5B
+7.5B
+Baseline
+RETRO [OFF]
+RETRO [ON]
+0
+1
+10
+100
+1000 10000
+Retrieval dataset (B Tokens)
+0.7
+0.8
+0.9
+1.0
+0
+1
+3
+5
+10
+30 50 100
+Number of neighbors
+0.7
+0.8
+0.9
+1.0
+Figure 1 | Scaling of Retro. The performance gain of our retrieval models remains constant with
+model scale (left), and is comparable to multiplying the parameteric model size by ∼10×. The gain
+increases with the size of the retrieval database (middle) and the number of retrieved neighbours
+(right) on the C4 validation set, when using up to 40 neighbours. Past this, performance begins to
+degrade, perhaps due to the reduced quality. At evaluation Retro can be used without retrieval
+data (Retro[OFF]), bringing limited performance degradation compared to baseline transformers.
+contributions are the following.
+• We introduce Retro, a retrieval-enhanced autoregressive language model (§2.2). We use a
+chunked cross-attention module to incorporate the retrieved text (§2.4), with time complexity
+linear in the amount of retrieved data. We show that retrieving based on a pre-trained frozen
+Bert model (§2.3) works at scale, removing the need for training and updating a retriever
+network.
+• We show that our method scales well with model size and database size (Fig. 1): Retro
+provides a constant gain for models ranging from 150M to 7B parameters, and Retro can be
+improved at evaluation time by increasing the database size and the number of retrieved neigh-
+bours. Our largest model obtains state-of-the-art results on a range of downstream evaluation
+datasets including Wikitext103 (Merity et al., 2017) and the Pile (Gao et al., 2020) (§4). We
+show that Retro can be ﬁne-tuned to achieve competitive performance on downstream tasks
+such as question answering (§4.3).
+• We propose an evaluation aware of proximity of test documents with the training set (§2.6),
+addressing the problem of test set leakage (Lee et al., 2021). This is relevant for all language
+models, and especially for retrieval-enhanced models since they have direct access to the training
+dataset during evaluation. Using this methodology, we show that the performance of Retro
+comes from both explicit neighbour copying and general knowledge extraction (§4.4).
+2. Method
+We design our retrieval-enhanced architecture to be capable of retrieving from a database with trillions
+of tokens. For this purpose, we retrieve at the level of contiguous token chunks instead of individual
+tokens which reduces storage and computation requirements by a large linear factor. Our method ﬁrst
+constructs a key-value database, where values store raw chunks of text tokens and keys are frozen
+Bert embedddings (Devlin et al., 2019). We use a frozen model to avoid having to periodically
+re-compute embeddings over the entire database during training. Each training sequence is then split
+into chunks, which are augmented with their 𝑘-nearest neighbour retrieved from the database. An
+encoder-decoder architecture integrates retrieval chunks into the model’s predictions. We summarize
+the Retro architecture in Fig. 2, and detail it in this section. We end the section by introducing
+2
+Improving language models by retrieving from trillions of tokens
+CCA
+FFW
+Transformer 
+Encoder
+Retrieval
+dataset
+Frozen kNN Retriever
+K
+V
+RETRO block (x L) 
+Neighbours
+Input 
+tokens
+Chunked cross-attention (CCA)
+BERT
+BERT
+Condition
+Attending chunks
+Encoded neighbours
+CA
+CA
+ATTN
+Q
+EMB
+READ
+Attend
+Encoded neighbours
+C1
+C2
+C3
+H1
+H2
+H3
+H
+H1
++
+H2
++
+E1
+E2
+E1
+E2
+CA(H1
++, E1)
+CA(H2
++, E2)
+CCA(H, E)
+X
+Figure 2 | Retro architecture. Left: simpliﬁed version where a sequence of length 𝑛= 12 is split
+into 𝑙= 3 chunks of size 𝑚= 4. For each chunk, we retrieve 𝑘= 2 neighbours of 𝑟= 5 tokens each. The
+retrieval pathway is shown on top. Right: Details of the interactions in the Cca operator. Causality is
+maintained as neighbours of the ﬁrst chunk only aﬀect the last token of the ﬁrst chunk and tokens
+from the second chunk.
+a new methodology to evaluate language models when an evaluation set is partially present in the
+training set.
+2.1. Training dataset
+We use a multi-lingual version of MassiveText (Rae et al., 2021) for both training and retrieval data.
+The dataset consists of text documents from multiple sources and multiple languages totalling over
+5 trillion tokens (detailed in Table 1). Sequences are sampled from subsets of the training data,
+with sampling weights given in the right-most column of Table 1. We tokenize the dataset using
+SentencePiece (Kudo and Richardson, 2018) with a vocabulary of 128,000 tokens. During training
+(unless otherwise speciﬁed), we retrieve from 600B tokens from the training data. The training
+retrieval database is made of the same subsets as the training data, in proportion that matches
+the training sampling frequencies. During evaluation the retrieval database consists in the full
+union of these datasets, with the exception of books for which we use a sub-sample of 4%. The
+evaluation retrieval database thus contains 1.75T tokens. To limit test set leakage, we compute the
+13-gram Jaccard similarity between train and test documents using the MinHash scheme and remove
+all training documents with high similarity (0.8 or higher) to a validation or test set document.
+Additionally, we remove all validation and test articles from Wikitext103 (Merity et al., 2017) from
+our Wikipedia training data.
+2.2. Retrieval-enhanced autoregressive token models
+Our approach uses retrieval as a way to augment input examples at the granularity of small chunks
+of tokens. Formally, we consider sequences of integer tokens in 𝕍= [1, 𝑣], obtained using a text
+tokenizer1. We split each 𝑛-token-long example 𝑋= (𝑥1, . . . , 𝑥𝑛) into a sequence of 𝑙chunks (𝐶1, . . . , 𝐶𝑙)
+of size 𝑚= 𝑛
+𝑙, i.e. 𝐶1 ≜(𝑥1, . . . , 𝑥𝑚), . . . , 𝐶𝑙≜(𝑥𝑛−𝑚+1, . . . , 𝑥𝑛) ∈𝕍𝑚. We use 𝑛= 2048 and 𝑚= 64.
+We augment each chunk 𝐶𝑢with a set RetD(𝐶𝑢) of 𝑘neighbours from the database D. RetD (or
+1We use the notation [1, 𝑣] ≜{1, . . . , 𝑣} throughout the text.
+3
+Improving language models by retrieving from trillions of tokens
+Ret for brevity) is a non-trainable operator speciﬁed in §2.3. Token likelihoods are provided by a
+model, parameterized by 𝜃, that takes as input both previous tokens and their retrieved neighbours.
+This deﬁnes the following retrieval-enhanced sequence log-likelihood:
+𝐿(𝑋|𝜃, D) ≜
+𝑙∑︁
+𝑢=1
+𝑚
+∑︁
+𝑖=1
+ℓ𝜃
+𝑢
+(𝑥𝑢𝑖
+𝑙
+𝐶𝑢
+𝑙𝑖𝑛𝑘𝑠(𝐶𝑢))
+where 𝜃deﬁnes the probability distribution 𝑝𝜃(𝑥𝑢𝑖|𝐶𝑢)
+𝑙𝑖𝑛𝑘𝑠(𝐶𝑢)) over the vocabulary of tokens and
+RetD(𝐶𝑢) the set of neighbours retrieved from the database D for chunk 𝐶𝑢.
+2.3. Retrieval from pre-trained frozen Bert
+We follow a common setup (Yogatama et al., 2021), representing each chunk as a dense vector using
+a pre-trained BERT (Devlin et al., 2019). For each chunk, we extract the pooled representation as
+an embedding that will serve as a key for the retrieval step. Given a chunk 𝐶, we retrieve from the
+retrieval database D the top 𝑘neighbours according to a similarity metric. Specifically, the retrieval
+database is pre-processed by extracting BERT embeddings for each chunk of the database. For
+our experiments, we use 𝑘= 40 neighbours from the database, as well as a chunk size of 𝑚= 64
+tokens and 5 tokens before and after the chunk to inform the retriever. We remove stopwords and
+punctuation before computing the similarity metric.
+2.4. Integration into the model
+We use a retrieval encoder-decoder architecture that follows a transformer structure (Vaswani et al.,
+2017). The retrieval pathway is the following. Each chunk 𝐶of the input is encoded with a causal
+self-attention and a cross-attention to the retrieved neighbours. The cross-attention is causal, i.e.
+attends to retrieved chunks that only precede the current chunk. Each chunk is encoded by the causal
+self-attention and the outputs of the previous chunks are then encoded with a cross-attention. The
+cross-attention is designed to be computationally eﬃcient and takes into account both the model
+predictions and the retrieved chunks. Given an input sequence 𝑋, let 𝐻𝑢be the sequence of outputs
+corresponding to the tokens of the 𝑢-th chunk. Let 𝐸𝑢be the sequence of outputs corresponding
+to the retrieved chunks for the 𝑢-th chunk. We use the following chunked cross-attention (Cca)
+operator:
+Cca(𝐻𝑢, 𝐸𝑢) = Concat(𝑄𝐻𝑢, 𝑄𝐸𝑢)
+𝑊𝑉𝑉
+𝑊𝐾𝐾𝑇
+𝐾𝐸𝑢
+𝑉𝐸𝑢where:
+𝑄𝐻𝑢= 𝑊𝑄𝐻𝑢
+𝑄𝐸𝑢= 𝑊𝑄𝐸𝑢
+𝑊𝑄, 𝑊𝐾𝐾, and 𝑊𝑉𝑉 are learned linear projections.
+The output of the Cca operator is then passed through a transformer layer, following the same structure
+as the decoder. The Cca operator is computed only for the last token of each chunk and is used in
+place of the standard multi-head attention block. For the other tokens, the standard transformer layer
+is used with the retrieved neighbours encoded with a causal self-attention.
