@@ -72,7 +72,8 @@ class PdfToTextTool(BaseTool):
             doc_text += text
         with open(output_path, "w", encoding="utf-8") as f:
             f.write(doc_text)
-        return f"Successfully extracted text from {pdf_path} and saved to {output_path}.\n\nExtracted text:\n\n{doc_text}"
+        # Return the full extracted text so agents can use it
+        return doc_text
 
 
 class MarkdownToPdfInput(BaseModel):
