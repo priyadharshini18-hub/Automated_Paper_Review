@@ -1,8 +1,6 @@
 from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
-from crewai.agents.agent_builder.base_agent import BaseAgent
-from typing import List
-from src.tools.custom_tool import PdfToTextTool, MarkdownToPdfTool
+from tools.custom_tool import MarkdownToPdfTool
 
 
 @CrewBase
@@ -12,14 +10,7 @@ class PaperReviewCrew():
     agents_config = 'config/agents.yaml'
     tasks_config = 'config/tasks.yaml'
 
-
-    @agent
-    def scrapper_agent(self) -> Agent:
-        return Agent(
-            config=self.agents_config['scrapper_agent'],
-            tools=[PdfToTextTool()],  # Add tool instance here
-            verbose=True
-        )
+    # REMOVED: scraper_agent (uses pdf_path)
 
     @agent
     def summarizer_agent(self) -> Agent:
@@ -51,9 +42,9 @@ class PaperReviewCrew():
         )
 
     @task
-    def text_extractor(self) -> Task:
+    def text_reader(self) -> Task:
         return Task(
-            config=self.tasks_config['text_extractor'],
+            config=self.tasks_config['text_reader'],
         )
 
     @task
@@ -82,8 +73,7 @@ class PaperReviewCrew():
 
     @crew
     def crew(self) -> Crew:
-        """Creates the Deep Researcher crew"""
-
+        """Creates the Paper Review crew"""
         return Crew(
             agents=self.agents,
             tasks=self.tasks,

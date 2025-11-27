@@ -68,7 +68,7 @@ The crew generates two files:
 
 The Automated Paper Review Crew is composed of multiple AI agents, each with unique roles, goals, and tools:
 
-1. **Scrapper Agent**: Extracts clean text from PDF research papers using the custom PDF to Text Extractor tool
+1. **Scraper Agent**: Extracts clean text from PDF research papers using the custom PDF to Text Extractor tool
 2. **Summarizer Agent**: Analyzes the extracted text and produces comprehensive, structured summaries
 
 These agents collaborate on a series of tasks, defined in `config/tasks.yaml`, leveraging their collective skills to achieve complex objectives. The `config/agents.yaml` file outlines the capabilities and configurations of each agent in your crew.

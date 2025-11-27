@@ -1,19 +1,34 @@
-text_extractor:
-  description: >
-    Extract text content from the PDF located at {pdf_path}.
-    Use the PDF to Text Extractor tool with pdf_path={pdf_path} and output_path='output/paper_text.txt'.
-    After extraction, read the content from output/paper_text.txt and return the ACTUAL extracted text, not a description.
-  expected_output: >
-    The complete, actual extracted text from the PDF file (not a description or placeholder) ready for further processing or summarization.
-    Return the full text content that was written to output/paper_text.txt.
-  agent: scrapper_agent
-  output_file: output/paper_text.txt
+# # text_extractor:
+# #   description: >
+# #     Extract text content from the PDF located at {pdf_path}.
+# #     Use the PDF to Text Extractor tool with pdf_path={pdf_path} and output_path='output/paper_text.txt'.
+# #     After extraction, read the content from output/paper_text.txt and return the ACTUAL extracted text, not a description.
+# #   expected_output: >
+# #     The complete, actual extracted text from the PDF file (not a description or placeholder) ready for further processing or summarization.
+# #     Return the full text content that was written to output/paper_text.txt.
+# #   agent: scraper_agent
+# #   output_file: output/paper_text.txt
 
+
+text_reader:
+  description: >
+    Here is the research paper text to analyze:
+    
+    --- BEGIN PAPER ---
+    {paper_content}
+    --- END PAPER ---
+    
+    Return this complete text content for further analysis.
+  expected_output: >
+    The complete text content of the research paper ready for summarization.
+  agent: summarizer_agent
+  output_file: output/paper_text.txt
 
 
 paper_summarizer:
   description: >
-    Analyze the extracted research paper text provided by the previous task.
+    Analyze the research paper text provided in the previous task.
+    
     Create a comprehensive summary with the following sections:
     1. **Problem Statement**: What problem does this research address?
     2. **Objectives**: What are the main goals and research questions?
@@ -23,172 +38,103 @@ paper_summarizer:
     6. **Strengths**: What are the strengths of the research paper?
     7. **Weaknesses**: What are the weaknesses of the research paper?
     8. **Conclusions**: What are the main takeaways and implications?
-    9.**Future Work**: What future directions or improvements does the paper suggest?
+    9. **Future Work**: What future directions or improvements does the paper suggest?
     
-    Use the extracted text from the previous task as your input, avoid using any assumptions or other external information than the extracted text.
+    Use ONLY the text from the previous task. Do not use external knowledge.
     Format the summary in clear, well-organized sections with headers.
   expected_output: >
     A well-structured research paper summary in markdown format with clearly labeled sections:
-    Problem Statement, Objectives, Keywords, Methodology, Results, Strength and Weaknesses, and Conclusions.
-    Each section should be concise but comprehensive, capturing the essence of the research. Include technical details and key findings.
+    Problem Statement, Objectives, Keywords, Methodology, Results, Strengths, Weaknesses, Conclusions, and Future Work.
+    Each section should be concise but comprehensive, capturing the essence of the research.
   agent: summarizer_agent
   context:
-    - text_extractor
+    - text_reader
   output_file: output/paper_summary.md
-
 
 
 summary_critique:
   description: >
-    Critically evaluate the research paper summary by comparing it against the ORIGINAL EXTRACTED TEXT.
+    Critically evaluate the research paper summary by comparing it against the ORIGINAL TEXT.
     
-    You have access to:
-    - The original extracted paper text (from text_extractor)
-    - The generated summary (from paper_summarizer)
+    ORIGINAL PAPER TEXT:
+    --- BEGIN PAPER ---
+    {paper_content}
+    --- END PAPER ---
     
-    IMPORTANT: Base your evaluation ONLY on comparing the summary to the original extracted text.
-    Do NOT use any external knowledge or assumptions. If something is missing from the summary,
-    verify it actually exists in the original text before marking it as missing.
+    You also have the generated summary from paper_summarizer.
     
-    Evaluation criteria (check summary against original text):
-    1. **Completeness**: Are all 9 required sections present? (Problem Statement, Objectives, Keywords, Methodology, Results, Strengths, weaknesses, Conclusions)
-       - Cross-reference: Does the original text contain information for each section?
+    IMPORTANT: Base your evaluation ONLY on comparing the summary to the original text above.
+    Do NOT use any external knowledge or assumptions.
+    
+    Evaluation criteria:
+    1. **Completeness**: Are all 9 required sections present?
     2. **Accuracy**: Does the summary accurately represent what's in the original text?
-       - No hallucinated claims or misrepresentations
-       - Key findings match the source material
-    3. **Clarity of Objectives**: Are the research objectives clearly identified as stated in the original paper?
-    4. **Technical Depth**: Does the summary capture the technical details (methods, algorithms, metrics) present in the original text?
-    5. **Result-Conclusion Alignment**: Are the conclusions properly backed by results AS STATED in the original paper?
-    6. **Strength and Weaknesses**: Are the strengths and weaknesses of the research paper clearly identified and described?
-    7. **Coverage**: Are important points from the original text missing from the summary?
+    3. **Clarity of Objectives**: Are the research objectives clearly identified?
+    4. **Technical Depth**: Does the summary capture technical details?
+    5. **Result-Conclusion Alignment**: Are conclusions backed by stated results?
+    6. **Strengths and Weaknesses**: Are they clearly identified?
+    7. **Coverage**: Are important points missing?
     
-    YOUR DECISION:
-    
-    If the summary meets ALL criteria satisfactorily:
-      Output: "APPROVED!
-      
-      Summary Quality Assessment:
-      - [List what was done well, with references to original text]
-      - [Note strengths]
-      
-      Feedback Notes for Synthesizer:
-      - [Any minor suggestions or highlights to emphasize in final report]
-      - [Areas of particular strength to preserve]"
-    
-    If the summary fails ANY critical criteria:
-      Output: "REJECTED!
-      
-      Critical Issues Found:
-      - [List specific missing or inadequate sections WITH QUOTES from original text showing what was missed]
-      - [Explain what improvements are needed]
-      - [Provide specific examples from the original text that should be included]
-      
-      This summary cannot proceed to final report generation.
-      Please address these issues before resubmission."
-    
-    Be thorough, specific, and always cite the original text when pointing out issues or strengths.
+    Output "APPROVED!" or "REJECTED!" with detailed feedback.
   expected_output: >
     A markdown-formatted decision document that starts with either "APPROVED!" or "REJECTED!" 
     followed by detailed feedback organized with clear headers and bullet points.
-    All feedback must reference the original extracted text, not external knowledge.
-    
-    For APPROVED: Include quality assessment with references to how well the summary captures the original.
-    For REJECTED: Include critical issues with specific quotes/references from the original text showing gaps.
   agent: critique_agent
   context:
-    - text_extractor
+    - text_reader
     - paper_summarizer
   output_file: output/critique_decision.md
 
 
-
 final_report_generation:
   description: >
-    Create a comprehensive, professional paper review report in markdown format 2 pages long atleast.
-    This will be converted to PDF as the final deliverable.
+    Create a comprehensive paper review report as a JSON object.
 
-    You have access to:
-    - The original extracted paper text
-    - The approved summary
-    - The critique feedback and notes
+    ORIGINAL PAPER TEXT:
+    --- BEGIN PAPER ---
+    {paper_content}
+    --- END PAPER ---
 
-    Use the critique feedback and notes to improve the report and make it more comprehensive.
+    You also have:
+    - The summary from paper_summarizer
+    - The critique feedback from summary_critique
 
-    Your report should include:
+    Output a valid JSON object with the following structure:
+    {
+      "title": "Paper title",
+      "authors": "Authors if available or null",
+      "date_reviewed": "November 26, 2025",
+      "executive_summary": "2-3 paragraph high-level overview",
+      "problem_statement": "What problem does this research address",
+      "research_objectives": ["objective 1", "objective 2"],
+      "methodology": "Methods and techniques used with technical details",
+      "key_results": "Summary of key findings",
+      "metrics": [
+        {"name": "metric name", "value": "value", "explanation": "what it means"}
+      ],
+      "strengths": ["strength 1", "strength 2"],
+      "weaknesses": ["weakness 1", "weakness 2"],
+      "conclusions": "Main takeaways and implications",
+      "future_work": ["future direction 1", "future direction 2"]
+    }
 
-    # Research Paper Review Report
-
-    ## Paper Information
-    - Title: [Extract from paper]
-    - Authors: [If available]
-    - Date: [Today's date]
-
-    ## Executive Summary
-    [High-level overview - 2-3 paragraphs]
-
-    ## Detailed Analysis
-
-    ### Problem Statement
-    [From approved summary]
-
-    ### Research Objectives
-    [From approved summary]
-
-    ### Methodology
-    [From approved summary, with technical details]
-
-    ### Key Results
-    [From approved summary, with key results and metrics as per the paper. Make sure to include the numbers/ comparisons in table format if needed.
-    Also, include the explanation for the results and metrics.]
-
-    ### Strengths
-    [From approved summary, with strengths of the research paper.]
-
-    ### Weaknesses
-    [From approved summary, with weaknesses of the research paper.]
-
-    ### Conclusions
-    [From approved summary]
-
-    ### Future Work
-    [From approved summary]
-
-    ---
-    *Report generated on [date]*
-
-    Format professionally with proper markdown headers, bullet points, and structure.
-    This markdown will be converted to PDF, so ensure clean formatting.
+    Output ONLY valid JSON. No markdown, no code blocks, no extra text.
   expected_output: >
-    A comprehensive, professionally formatted markdown document that serves as the complete paper review report.
-    The document should be publication-ready and suitable for PDF conversion.
+    A valid JSON object containing all fields. Must be parseable by json.loads().
   agent: synthesizer_agent
   context:
-    - text_extractor
+    - text_reader
     - paper_summarizer
     - summary_critique
-  output_file: output/final_report.md
-
+  output_file: output/final_report.json
 
 
 pdf_generation:
   description: >
-    Convert the final markdown report (output/final_report.md) to a professionally formatted PDF document.
-
-    Steps to complete:
-    1. Use the Markdown to PDF Converter tool with markdown_path='output/final_report.md'
-    2. Set output_pdf_path='output/paper_report.pdf'
-    3. Ensure the PDF maintains all formatting including tables, headers, bullet points, and styling
-
-    The tool will automatically:
-    - Convert markdown syntax to formatted PDF
-    - Apply professional styling (headers, tables, colors)
-    - Create proper page layout with margins
-    - Handle tables and special formatting
-
-    Return confirmation of successful PDF creation with the output path.
+    Convert the final report JSON to a professionally formatted PDF document.
+    Read the JSON from output/final_report.json and create a PDF at output/paper_report.pdf.
   expected_output: >
-    A confirmation message indicating successful PDF generation with the full path to the created PDF file.
-    Example: "Successfully converted output/final_report.md to PDF: output/paper_report.pdf"
+    A confirmation message indicating successful PDF generation with the output path.
   agent: pdf_generator_agent
   context:
     - final_report_generation

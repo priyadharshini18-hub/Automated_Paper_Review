@@ -1,59 +1,72 @@
 ```markdown
-# Research Paper Summary: Improving Language Models by Retrieving from Trillions of Tokens
+# Research Paper Summary: WizardCoder: Empowering Code Large Language Models with Evol-Instruct
 
 ## 1. Problem Statement
-The research addresses the problem of scaling language models efficiently.  Traditional approaches rely on increasing model size and training data, which leads to higher computational costs and increased memory usage. This paper aims to decouple computation from memory by augmenting language models with a massive-scale memory without significantly increasing computations. It specifically targets the limitations of existing retrieval-augmented language models, which have been limited to smaller models and databases.
+
+Existing Code Large Language Models (Code LLMs) are primarily pre-trained on raw code data without sufficient instruction fine-tuning, limiting their ability to handle complex code-related tasks and align with user intentions. They lag behind closed-source models.
 
 ## 2. Objectives
+
 The main objectives of this research are:
-*   Introduce Retro, a retrieval-enhanced autoregressive language model.
-*   Incorporate retrieved text using a chunked cross-attention module with linear time complexity.
-*   Demonstrate that retrieving based on a pre-trained frozen Bert model works at scale, eliminating the need to train and update a retriever network.
-*   Show that the method scales well with model size and database size, providing constant gains for models ranging from 150M to 7B parameters.
-*   Achieve state-of-the-art results on downstream evaluation datasets.
-*   Propose an evaluation methodology that addresses test set leakage by considering the proximity of test documents to the training set.
+
+*   To enhance the performance of open-source Code LLMs, specifically StarCoder, through complex instruction fine-tuning using a code-specific Evol-Instruct method.
+*   To outperform existing open-source Code LLMs in code generation benchmarks.
+*   To achieve comparable or superior performance to closed-source LLMs, such as Claude and Bard, despite having a smaller model size.
 
 ## 3. Keywords
-Language modelling, retrieval-enhanced language model, Retro, Transformer, Bert, chunked cross-attention, scaling, memory, semi-parametric approach, knowledge extraction, test set leakage.
+
+Code Large Language Models (Code LLMs), instruction fine-tuning, Evol-Instruct, code generation, StarCoder, HumanEval, HumanEval+, MBPP, DS-1000, open-source models, closed-source models.
 
 ## 4. Methodology
-The Retro model utilizes a retrieval-enhanced architecture that retrieves from a large database of text tokens. The methodology involves the following steps:
-1.  **Database Construction**: A key-value database is created, where values store raw chunks of text tokens, and keys are frozen Bert embeddings.
-2.  **Chunking**: Training sequences are split into chunks of tokens (size m=64).
-3.  **Retrieval**: For each chunk, the k-nearest neighbors (k=40) are retrieved from the database using the frozen Bert embeddings and a similarity metric.
-4.  **Integration**: A retrieval encoder-decoder architecture integrates the retrieved chunks into the model's predictions using a chunked cross-attention mechanism.
-5.  **Training**: The model is trained from scratch or retrofitted from a pre-trained transformer.
-6.  **Evaluation**: Evaluation is performed using a methodology that addresses test set leakage by computing the Jaccard similarity between train and test documents.
+
+The research methodology involves the following steps:
+
+1.  **Adapting Evol-Instruct to the Code Domain:** Refining evolutionary instructions, simplifying prompt forms, and incorporating code debugging and time-space complexity constraints.
+2.  **Generating Code Instruction Data:** Evolving the Code Alpaca dataset using the modified Evol-Instruct method to create intricate code instruction data.
+3.  **Fine-tuning StarCoder:** Fine-tuning the StarCoder model using the newly created code instruction-following training set, resulting in WizardCoder.
+4.  **Iterative Evolution and Fine-tuning:** Iteratively applying Evol-Instruct and fine-tuning, monitoring the pass@1 metric on HumanEval to determine the optimal model.
+5.  **Evaluation:** Evaluating the model on HumanEval, HumanEval+, MBPP, and DS-1000 benchmarks, comparing its performance against open-source and closed-source LLMs.
 
 ## 5. Results
-Key findings and outcomes of the research include:
-*   Retro achieves comparable performance to GPT-3 and Jurassic-1 on the Pile, despite using 25x fewer parameters.
-*   Retro provides a constant gain for models ranging from 150M to 7B parameters.
-*   Performance improves with the size of the retrieval database and the number of retrieved neighbors.
-*   Retro can be fine-tuned to achieve competitive performance on downstream tasks such as question answering.
-*   The performance of Retro comes from both explicit neighbor copying and general knowledge extraction.
+
+The key findings and outcomes of this research are:
+
+*   WizardCoder outperforms all other open-source Code LLMs by a substantial margin on code generation benchmarks (HumanEval, HumanEval+, MBPP, and DS-1000).
+*   WizardCoder achieves state-of-the-art (SOTA) performance among open-source Code LLMs.
+*   WizardCoder surpasses the largest closed-source LLMs, Anthropic’s Claude and Google’s Bard, in terms of pass rates on HumanEval and HumanEval+.
+*   Significant improvements in pass@1 scores were observed, with an increase of +22.3 on HumanEval and +8.2 on MBPP.
+*   Ablation studies showed that the highest pass@1 score on HumanEval was achieved after three rounds of data evolution.
 
 ## 6. Strengths
-*   **Efficiency**: Retro achieves comparable performance with significantly fewer parameters than traditional language models.
-*   **Scalability**: The method scales well with model size and database size.
-*   **Novel Architecture**: The chunked cross-attention mechanism is computationally efficient.
-*   **Addresses Test Set Leakage**: The evaluation methodology considers the proximity of test documents to the training set.
-*   **Utilizes Pre-trained BERT**: Freezes the retriever, avoiding re-computation of embeddings.
+
+The strengths of this research paper include:
+
+*   **Novel Approach:** Adapting the Evol-Instruct method specifically for the code domain.
+*   **Significant Performance Improvement:** Achieving SOTA performance and surpassing both open-source and closed-source models.
+*   **Comprehensive Evaluation:** Evaluating the model on multiple code generation benchmarks.
+*   **Detailed Methodology:** Providing a clear and detailed description of the Evol-Instruct adaptations and fine-tuning process.
+*   **Ablation Study:** Including an ablation study to analyze the impact of data evolution rounds.
 
 ## 7. Weaknesses
-*   Performance degrades beyond a certain number of neighbors, potentially due to reduced quality of retrieved chunks.
-*   The model relies on a pre-trained BERT model for retrieval, which may introduce biases or limitations.
-*   The complexity of the retrieval and integration process may add overhead compared to purely parametric models.
-*   The paper mentions a drop in performance when retrieval is turned off during evaluation (Retro[OFF]), indicating a reliance on the external database.
+
+The weaknesses of this research paper include:
+
+*   **Limited Comparison:** Relies on scores from LLM-Humaneval-Benchmarks for closed-source models, which might not be a direct comparison.
+*   **Ethical Considerations:** The paper acknowledges the potential for generating unethical content but does not provide specific mitigation strategies.
+*   **Performance Gap:** While outperforming many models, WizardCoder still falls behind GPT4, indicating room for improvement.
 
 ## 8. Conclusions
-The research concludes that retrieval from a large text database is a promising approach for improving language models. The Retro model demonstrates that it is possible to achieve comparable performance with significantly fewer parameters by augmenting language models with explicit memory. This work opens up new avenues for improving language models through explicit memory at unprecedented scale.
+
+The main takeaways and implications of this research are:
+
+*   Code-specific instruction fine-tuning, particularly with the Evol-Instruct method, can significantly enhance the performance of Code LLMs.
+*   WizardCoder demonstrates the potential for open-source models to achieve competitive or superior performance compared to closed-source models.
+*   The study highlights the importance of evolving instruction data and tailoring it to the specific characteristics of the code domain.
 
 ## 9. Future Work
-The paper does not explicitly specify future work, but implied directions for future research include:
-*   Investigating methods to improve the quality of retrieved chunks.
-*   Exploring different retrieval mechanisms and similarity metrics.
-*   Applying Retro to a wider range of downstream tasks and languages.
-*   Reducing the reliance on the external database by improving the model's ability to generalize from retrieved information.
-*   Exploring methods to dynamically update the retrieval database.
+
+The paper suggests the following future directions and improvements:
+
+*   Enhance the Code Evol-Instruct method to further improve the model's performance.
+*   Address the ethical and societal implications of the model, such as the generation of unethical, harmful, or misleading information.
 ```

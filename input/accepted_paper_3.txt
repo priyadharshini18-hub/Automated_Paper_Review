@@ -1,0 +1,286 @@
+\title{The Effect of Intrinsic Dataset Properties on Generalization: Unraveling Learning Differences Between Natural and Medical Images}
+
+\begin{abstract}
+This paper investigates discrepancies in how neural networks learn from different imaging domains, which are commonly overlooked when adopting computer vision techniques from the domain of natural images to other specialized domains such as medical images. Recent works have found that the generalization error of a trained network typically increases with the intrinsic dimension ($\dd$) of its training set. Yet, the steepness of this relationship varies significantly between medical (radiological) and natural imaging domains, with no existing theoretical explanation. We address this gap in knowledge by establishing and empirically validating a generalization scaling law with respect to $\dd$, and propose that the substantial scaling discrepancy between the two considered domains may be at least partially attributed to the higher intrinsic ``label sharpness'' ($\KF$) of medical imaging datasets, a metric which we propose.
+Next, we demonstrate an additional benefit of measuring the label sharpness of a training set: it is negatively correlated with the trained model's adversarial robustness, which notably leads to models for medical images having a substantially higher vulnerability to adversarial attack. 
+Finally, we extend our $\dd$ formalism to the related metric of learned representation intrinsic dimension ($\dr$), derive a generalization scaling law with respect to $\dr$, and show that $\dd$ serves as an upper bound for $\dr$. Our theoretical results are supported by thorough experiments with six models and eleven natural and medical imaging datasets over a range of training set sizes. Our findings offer insights into the influence of intrinsic dataset properties on generalization, representation learning, and robustness in deep neural networks.}
+
+\end{abstract}
+
+\section{Introduction}
+
+
+There has been recent attention towards how a neural network's ability to generalize to test data relates to the \textit{intrinsic dimension} $\dd$ of its training dataset, \ie, the dataset's inherent ``complexity'' or the minimum degrees of freedom needed to represent it without substantial information loss \citep{gong2019intrinsic}. Recent works have found that generalization error typically increases with $\dd$, empirically \citep{pope2021intrinsic} or theoretically \citep{bahri2021explaining}.
+Such ``scaling laws'' with respect to intrinsic dataset properties are attractive because they may describe neural network behavior in generality, for different models and/or datasets, allowing for better understanding and predictability of the behavior, capabilities, and challenges of deep learning.
+However, a recent study \citep{konz2022intrinsic} showed that generalization scaling behavior differs drastically depending on the input image type, \eg, natural or medical images, showing the non-universality of the scaling law and motivating us to consider its relationship to properties of the dataset and imaging domain.\footnote{Here we take ``medical'' images to refer to radiology images (\eg, x-ray, MRI), the most common type.}
+
+In this work, we provide theoretical and empirical findings on how measurable intrinsic properties of an image dataset can affect the behavior of a neural network trained on it. We show that certain dataset properties that differ between imaging domains can lead to discrepancies in behaviors such as generalization ability and adversarial robustness. Our contributions are summarized as follows.
+
+First, we introduce the novel measure of the intrinsic \textbf{label sharpness} ($\KF$) of a dataset (defined in Section \ref{sec:KFest}).
+The label sharpness essentially measures how similar images in the dataset can be to each other while still having different labels, and we find that it usually differs noticeably between natural and medical image datasets.
+We then derive and test a neural network generalization scaling law with respect to dataset intrinsic dimension $\dd$, which includes $\KF$. Our experiments support the derived scaling behavior within each of these two domains, and show a distinct difference in the scaling rate between them.1), this may be due to the measured $\KF$ being typically higher for medical datasets.
+
+Next, we show how a model's adversarial robustness relates to its training set's $\KF$, and show that over a range of attacks, robustness decreases with higher $\KF$. Indeed, medical image datasets, which have higher $\KF$, \textbf{are typically more susceptible to adversarial attack than natural image datasets}. 
+Finally, we extend our $\dd$ formalism to derive and test a generalization scaling law with respect to the intrinsic dimension of the model's \textit{learned representations}, $\dr$, and reconcile the $\dd$ and $\dr$ scaling laws to show that $\dd$ serves as an approximate upper bound for $\dr$. 
+3), and more.
+
+All theoretical results are validated with thorough experiments on six CNN architectures and eleven datasets from natural and medical imaging domains over a range of training set sizes. 
+We hope that our work initiates further study into how network behavior differs between imaging domains.
+
+
+
+\section{Related Works}
+
+
+We are interested in the scaling of the generalization ability of supervised convolutional neural networks with respect to intrinsic properties of the training set. Other works have also explored generalization scaling with respect to parameter count or training set size for vision or other modalities \citep{caballero2023broken, kaplan2020scaling, hoffmann2022training, touvron2023llama}.
+Note that we model the intrinsic dimension to be constant throughout the dataset's manifold as in \citet{pope2021intrinsic, bahri2021explaining} for simplicity, as opposed to the recent work of \citet{brown2023verifying}, which we find to be suitable for interpretable scaling laws and dataset properties.
+
+
+Similar to  \textit{dataset} intrinsic dimension scaling \citep{pope2021intrinsic, bahri2021explaining, konz2022intrinsic}, recent works have also found a monotonic relationship between a network's generalization error and the intrinsic dimension of both the learned hidden layer representations \citep{ansuini2019intrinsic}, or some measure of intrinsic dimensionality of the trained model itself \citep{birdal2021intrinsic, andreeva2023metric}. In this work, we focus on the former, as the latter model dimensionality measures are typically completely different mathematical objects than the intrinsic dimension of the manifolds of data or representations. Similarly, \citet{kvinge2023exploring} found a correlation between prompt perplexity and representation intrinsic dimension in Stable Diffusion models.
+
+
+
+\section{Preliminaries}
+
+\label{sec:preliminaries}
+
+We consider a binary classification dataset $\mathcal{D}$ of points $x\in\R^n$ with target labels $y=\mathcal{F}(x)$ defined by some unknown function $\mathcal{F}:\R^n\rightarrow \{0,1\}$, split into a training set $\Dtr$ of size $N$ and test set $\Dts$. The manifold hypothesis \citep{fefferman2016manifoldhyp} assumes that the input data $x$ lies approximately on some $\dd$-dimensional manifold $\Md\subset\R^n$, with $\dd\ll n$. More technically, $\Md$ is a metric space such that for all $x\in\Md$, there exists some neighborhood $U_x$ of $x$ such that $U_x$ is homeomorphic to $\R^{\dd}$, defined by the standard $L_2$ distance metric $||\cdot||$.
+
+As in \citet{bahri2021explaining}, we consider over-parameterized (number of parameters $\gg N$) models $f(x):\R^n\rightarrow \{0, 1\}$, that are ``well-trained'' and learn to interpolate all training data: $f(x)=\mathcal{F}(x)$ for all $x\in \Dtr$. We use a non-negative loss function $L$, such that $L=0$ when $f(x)=\mathcal{F}(x)$. Note that we write $L$ as the expected loss over a set of test set points. We assume that $\mathcal{F}$, $f$ and $L$ are Lipschitz/smooth on $\Md$ with respective constants $\KF$, $K_f$ and $K_L$. Note that we use the term ``\textit{Lipschitz constant}'' of a function to refer to the smallest value that satisfies the Lipschitz inequality.\footnote{A subtlety here is that our Lipschitz assumptions only involve pairs of datapoints sampled from the true data manifold $\Md$; adversarially-perturbed images \citep{DBLP:journals/corr/GoodfellowSS14} are not included.}
+1 for more details).
+
+\subsection{Estimating Dataset Intrinsic Dimension}
+\label{sec:dest}
+Here we introduce two common intrinsic dimension estimators for high-dimensional datasets that we use in our experiments, which have been used in prior works on image datasets \citep{pope2021intrinsic, konz2022intrinsic} and learned representations \citep{ ansuini2019intrinsic, gong2019intrinsic}.
+
+\textbf{MLE:} The MLE (maximum likelihood estimation) intrinsic dimension estimator \citep{levina2004maximum, mackay2005comments} works by assuming that the number of datapoints enclosed within some $\epsilon$-ball about some point on $\Md$ scales not as $\mathcal{O}(\epsilon^n)$, but $\mathcal{O}(\epsilon^{\dd})$, and then solving for $\dd$ with MLE after modeling the data as sampled from a Poisson process. This results in $\hat{d}_{\mathrm{data}}=\left[\frac{1}{N(k-1)} \sum_{i=1}^{N} \sum_{j=1}^{k-1} \log \frac{T_{k}\left(x_{i}\right)}{T_{j}\left(x_{i}\right)}\right]^{-1}$, where $T_j(x)$ is the $L_2$ distance from $x$ to its $j^{th}$ nearest neighbor and $k$ is a hyperparameter; we set $k=20$ as in \citet{pope2021intrinsic, konz2022intrinsic}.
+\textbf{TwoNN:} TwoNN \citep{facco2017estimating} is a similar approach that instead relies on the ratio of the first- and second-nearest neighbor distances. We default to using the MLE method for $\dd$ estimation as \citet{pope2021intrinsic} found it to be more reliable for image data than TwoNN, but we still evaluate with TwoNN for all experiments. Note that these estimators do not use datapoint labels.
+
+\subsection{Estimating Dataset Label Sharpness}
+\label{sec:KFest}
+Another property of interest is an empirical estimate for the ``label sharpness'' of a dataset, $\KF$. This measures the extent to which images in the dataset can resemble each other while still having different labels. Formally, $\KF$  is the Lipschitz constant of the ground truth labeling function $\mathcal{F}$, $\ie$, the smallest positive $\KF$ that satisfies $\KF ||x_1 - x_2|| \geq |\mathcal{F}(x_1) - \mathcal{F}(x_2)| =|y_1 - y_2|$ for all $x_1,x_2\sim \Md$, where $y_i=\mathcal{F}(x_i)\in\{0,1\}$ is the target label for $x_i$. We estimate this as
+\begin{equation}
+\label{eq:KFest}
+     \KFh := \max\limits_{j, k} \left(\frac{|y_j-y_k|}{|| x_j - x_k||}\right),
+\end{equation}
+computed over all $M^2$ pairings $((x_j, y_j), (x_k, y_k))$ of some $M$ evenly class-balanced random samples $\left\{(x_i, y_i) \right\}_{i=1}^M$ from the dataset $\mathcal{D}$. We use $M=1000$ in practice, which we found more than sufficient for a converging estimate, and it takes $<$1 sec. to compute $\KFh$.
+We minimize the effect of trivial dataset-specific factors on $\KFh$ by linearly normalizing all images to the same range (Sec.1). As the natural image datasets have multiple possible combinations of classes for the binary classification task, we report $\KFh$ averaged over 25 runs of randomly chosen class pairings.
+
+
+
+\section{Datasets, Models and Training}
+
+\label{sec:data}
+
+\paragraph{Medical Image Datasets.}
+We conducted our experiments on seven public medical image (radiology) datasets from diverse modalities and anatomies for different binary classification tasks. These are (1) brain MRI glioma detection (\textbf{BraTS}, \citet{menze2014multimodal}); (2) breast MRI cancer detection (\textbf{DBC}, \citet{saha2018machinedukedbc}); (3) prostate MRI cancer risk scoring (\textbf{Prostate MRI}, \citet{sonn2013prostate}); (4) brain CT hemorrhage detection (\textbf{RSNA-IH-CT}, \citet{flanders2020rsnaihct}); (5) chest X-ray pleural effusion detection (\textbf{CheXpert}, \citet{irvin2019chexpert}); (6) musculoskeletal X-ray abnormality detection (\textbf{MURA}, \citet{rajpurkar2017mura}); and (7) knee X-ray osteoarthritis detection (\textbf{OAI}, \citet{Tiulpin2018}).
+
+\paragraph{Natural Image Datasets.}
+We also perform our experiments using four common ``natural'' image classification datasets: \textbf{ImageNet} \citep{deng2009imagenet}, \textbf{CIFAR10} \citep{krizhevsky2009cifar}, \textbf{SVHN} \citep{netzer2011svhn}, and \textbf{MNIST} \citep{deng2012mnist}.
+
+For each dataset, we create training sets of size $N\in\{500, 750, 1000, 1250, 1500, 1750\}$, along with a test set of $750$ examples. These splits are randomly sampled with even class-balancing from their respective base datasets. For the natural image datasets we choose two random classes (different for each experiment) to define the binary classification task, and all results are averaged over five runs using different class pairs.\footnote{$N=1750$ is the upper limit of $N$ that all datasets could satisfy, given the smaller size of medical image datasets and ImageNet's typical example count per class.4 we evaluate much higher $N$ for datasets that allow for it.} Images are resized to $224\times224$ and normalized linearly to $[0, 1]$.
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=0.54\textwidth]{figs/datadim.pdf}
+\includegraphics[width=0.41\textwidth]{figs/lipschitz.pdf}
+    \caption{Measured intrinsic dimension ($\dd$, \textbf{left}) and label sharpnesses ($\KFh$, \textbf{right}) of the natural (orange) and medical (blue) image datasets which we analyze (Sec. \ref{sec:data}). \textbf{$\KFh$ is typically higher for the medical datasets}. 
+    $\dd$ values are averaged over all training set sizes, and $\KFh$ over all class pairings (Sec. \ref{sec:KFest}); error bars indicate $95\%$ confidence intervals.}
+    \label{fig:kf_vs_dd}
+\end{figure}
+
+\paragraph{Models and training.} We evaluate six models total: ResNet-18, -34 and -50 \citep{he2016resnet}, and VGG-13, -16 and -19 \citep{VGGs}. Each model $f$ is trained on each dataset for its respective binary classification task with Adam \citep{adam} until the model fully fits to the training set, for each training set size $N$ described previously.
+
+
+
+\section{The Relationship of Generalization with Dataset Intrinsic Dimension and Label Sharpness}
+
+
+In Fig. \ref{fig:kf_vs_dd} we show the average measured intrinsic dimension $\dd$ and label sharpness $\KFh$ of each dataset we study.
+While both natural and medical datasets can range in $\dd$, we note that medical datasets typically have much higher $\KFh$ than natural image datasets, which we will propose may explain differences in generalization ability scaling rates between the two imaging domains. 
+We emphasize that $\dd$ and $\KF$ are model-independent properties of a dataset itself.
+We will now describe how network generalization ability scales with $\dd$ and $\KF$.
+
+\subsection{Bounding generalization ability with dataset intrinsic dimension}
+\label{sec:exp:ddata_scaling}
+
+A result which we will use throughout is that on average, given some $N$ datapoints sampled i.i.d. from a $d$-dimensional manifold, the distance between the nearest neighbor $\xh$ of some datapoint $x$ scales as $\E_{x}||x-\hat{x}|| = \mathcal{O}(N^{-1/\dd})$ \citep{levina2004maximum}. As such, the nearest-neighbor distance of some test point to the training set decreases as the training set grows larger by $\mathcal{O}(N^{-1/\dd})$. It can then be shown that the loss on the test set/generalization error scales as $\mathcal{O}(K_L\max (K_f, \KF)N^{-1/\dd})$ on average; this is summarized in the following theorem.
+
+\begin{theorem}[Generalization Error and Dataset Intrinsic Dim. Scaling Law \citep{bahri2021explaining}]
+  \label{thm:scaling_dd}
+  Let $L$, $f$ and $\mathcal{F}$ be Lipschitz on $\Md$ with respective constants $K_L$, $K_f$ and $\KF$. Further let $\Dtr$ be a training set of size $N$ sampled i.i.d. from $\Md$, with $f(x)=\mathcal{F}(x)$ for all $x \in \Dtr$. Then, $L=\mathcal{O}(K_L\max (K_f, \KF)N^{-1/\dd})$.
+\end{theorem}
+
+We note that the $\KF$ term is typically treated as an unknown constant in the literature \citep{bahri2021explaining}; instead, we propose to \textit{estimate} it with the empirical label sharpness $\KFh$ (Sec. \ref{sec:KFest}). We will next show that $K_f\simeq \KF$ for large $N$ (common for deep models), which allows us to approximate Theorem \ref{thm:scaling_dd} as $L \simeq \mathcal{O}(K_L\KF N^{-1/\dd})$, \textbf{a scaling law independent of the trained model} $f$. Intuitively, this means that the Lipschitz smoothness of $f$ molds to the smoothness of the label distribution as the training set grows larger and test points typically become closer to training points. 
+
+\begin{theorem}[Approximating $K_f$ with $K_\mathcal{F}$]
+  \label{thm:KfsimKF}
+  $K_f$ converges to $\KF$ in probability as $N\rightarrow\infty$.
+\end{theorem}
+
+2 due to space constraints.
+This result is also desirable because computing an estimate for $K_f$, the Lipschitz constant of the model $f$, either using Eq. \eqref{eq:KFest} or with other techniques \citep{fazlyab2019efficient}, depends on the choice of model $f$, and may require many forward passes. Estimating $\KF$ (Eq. \eqref{eq:KFest} is far more tractable, as it is an intrinsic property of the dataset itself which is relatively fast to compute.
+
+
+Next, note that the Lipschitz constant $K_L$ is a property of the loss function, which we take as fixed \textit{a priori}, and so does not vary between datasets or models. As such, $K_L$ can be factored out of the scaling law of interest, such that we can simply consider $L\simeq \mathcal{O}(\KF N^{-1/\dd})$, \ie, 
+\begin{equation}
+\label{eq:loss_scaling_dd}
+\log L \lesssim -\frac{1}{\dd}\log N + \log \KF + a
+\end{equation}
+for some constant $a$.
+In the following section, we will demonstrate how the prediction of Eq. \eqref{eq:loss_scaling_dd} may explain recent empirical results in the literature where the rate of this generalization scaling law differed drastically between natural and medical datasets, via the measured differences in the typical label sharpness $\KFh$ of datasets in these two domains.
+
+\subsection{Generalization Discrepancies Between Imaging Domains}
+\label{sec:theory_lipschitz}
+
+
+Consider the result from Eq. \eqref{eq:loss_scaling_dd} that the test loss/generalization error scales approximately as $L\propto \KF N^{-1/\dd}$ on average.
+From this, we hypothesize that a higher label sharpness $\KF$ will result in the test loss curve that grows faster with respect to $\dd$.
+
+In Fig. \ref{fig:loss_vs_datadim} we evaluate the generalization error (log test loss) scaling of all models trained on each natural and medical image dataset with respect to the training set intrinsic dimension $\dd$, for all evaluated training set sizes $N$. 
+1.
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=0.98\textwidth]{figs/data_dim_loss_scaling_mle.pdf}
+\caption{Scaling of log test set loss/generalization ability with training dataset intrinsic dimension ($\dd$) for natural and medical datasets. Each point corresponds to a (model, dataset, training set size) triplet. Medical dataset results are shown in blue shades, and natural dataset results are shown in red; note the difference in generalization error scaling rate between the two imaging domains. Standard deviation error bars are shown for natural image datasets for 5 different class pairs.% Shaded regions for each domain (\textit{for illustrative purposes only}) plot the generalization bound of Eq. \eqref{eq:loss_scaling_dd} evaluated with the highest measured dataset $\KF$ value of each domain, and plausible value $a=9.8$.
+}
+\label{fig:loss_vs_datadim}
+\end{figure}
+
+We see that \textit{within} an imaging domain (natural or medical), model generalization error typically increases with $\dd$, as predicted, similar to prior results \citep{pope2021intrinsic,konz2022intrinsic}; in particular, approximately $\log L\propto -1/\dd + \mathrm{const.}$, aligning with Eq. \eqref{eq:loss_scaling_dd}. 
+However, we also see that the generalization error scaling is much sharper for models trained on medical data than natural data; models trained on datasets with similar $\dd$ and of the same size $N$ tend to perform much worse if the data is medical images.1). We posit that this difference is explained by medical datasets typically having much higher label sharpness ($\KFh \sim2.5\times 10^{-4}$) than natural images ($\KFh\sim 1\times 10^{-4}$) (Fig. \ref{fig:kf_vs_dd}) 
+, as $\KF$ is the only term in  Eq. \eqref{eq:loss_scaling_dd} that differs between two models with the same training set intrinsic dimension $\dd$ and size $N$.1 we show that accounting for $\KF$ increases the likelihood of the posited scaling law given the observed generalization data. However, we note that there could certainly be other factors causing the discrepancy which are not accounted for. 
+
+Intuitively, the difference in dataset label sharpness $\KF$ between these imaging domains is reasonable, as $\KF$ describes how similar a dataset's images can be while still having different labels (Sec. \ref{sec:KFest}).
+For natural image classification, images from different classes are typically quite visually distinct. However, in many medical imaging tasks, a change in class can be due to a small change or abnormality in the image, resulting in a higher dataset $\KF$; for example, the presence of a small breast tumor will change the label of a breast MRI from healthy to cancer. 
+
+
+
+
+\section{Adversarial Robustness and Training Set Label Sharpness}
+
+\label{sec:exp:robust}
+
+In this section we present another advantage of obtaining the sharpness of the dataset label distribution ($\KF$): it is negatively correlated with the adversarial robustness of a neural network. Given some test point $x_0\in\Md$ with true label $y=\mathcal{F}(x_0)$, the general goal of an adversarial attack is to find some $\tilde{x}$ that appears similar to $x_0$ --- \ie, $||\tilde{x}-x_0||_\infty$ is small --- that results in a different, seemingly erroneous network prediction for $\tilde{x}$. Formally, the \textit{robustness radius} of the trained network $f$ at $x_0$ is defined by
+\begin{equation}
+    \label{eq:robustradius}
+    R(f,x_0) := \mathop{\mathrm{inf}}_{\tilde{x}} \left\{ ||\tilde{x}-x_0||_\infty : f(\tilde{x}) \neq y \right\},
+\end{equation}
+where $x_0\in\Md$ \citep{zhang2021towards}.
+This describes the largest region around $x_0$ where $f$ is robust to adversarial attacks. We define the \textit{expected robust radius} of $f$ as $\hat{R}(f) := \E_{x_0\sim\Md}\displaystyle R(f,x_0)$. 
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=0.7\textwidth]{figs/adv_atk_kf_loss_eps2_scaling.pdf}
+    \caption{Test set loss penalty due to FGSM adversarial attack vs. measured dataset label sharpness ($\KFh$) for models trained on natural and medical image datasets (orange and blue points, respectively). Pearson correlation coefficient $r$ also shown. Error bars are $95\%$ confidence intervals over all training set sizes $N$ for the same dataset.}
+    \label{fig:atk_vs_kf}
+\end{figure}
+\begin{theorem}[Adversarial Robustness and Label Sharpness Scaling Law]
+  \label{thm:advscaling_KF}
+  Let $f$ be $K_f$-Lipschitz on $\R^n$. For a sufficiently large training set, the lower bound for the expected robustness radius of $f$ scales as $\hat{R}(f)\simeq\Omega\left({1}/{\KF}\right)$.
+
+  
+\end{theorem}
+\begin{proof}
+This follows from Prop.4 for all details.
+\end{proof}
+
+
+
+  
+     
+     
+     
+
+
+    
+    
+    
+    
+
+    
+    
+
+
+While it is very difficult to estimate robustness radii of neural networks in practice \citep{katz2017reluplex}, we can instead measure the average 
+loss penalty of $f$ due to attack, $\E_{x_0\sim\Dts}(L(\tilde{x}) - L(x_0))$,
+over a test set $\Dts$ of points sampled from $\Md$, and see if it correlates negatively with $\KFh$ (Eq. \eqref{eq:KFest}) for different models and datasets. As the expected robustness radius decreases, so should the loss penalty become steeper. We use FGSM \citep{DBLP:journals/corr/GoodfellowSS14} attacks with $L_\infty$ budgets of $\epsilon\in \{1/255, 2/255, 4/225, 8/255\}$ to obtain $\tilde{x}$.
+In Fig.3).3). Here we average results over the different training set sizes $N$ due to the lack of dependence of Theorem \ref{thm:advscaling_KF} on $N$.
+\begin{wraptable}[10]{r}{0.6\textwidth}
+\fontsize{9pt}{9pt}\selectfont
+\centering
+\begin{tabular}{l||ccc|ccc}
+\hline
+    Atk. $\epsilon$ & RN-18 & RN-34 & RN-50 & V-13 & V-16 & V-19 \\
+    \hline
+    $1/255$ & $0.77$ & $0.48$ & $0.55$ & $0.47$ & $0.63$ & $0.61$ \\
+    $2/255$ & $0.70$ & $0.37$ & $0.48$ & $0.47$ & $0.64$ & $0.61$ \\
+    $4/255$ & $0.63$ & $0.26$ & $0.41$ & $0.45$ & $0.62$ & $0.6$ \\
+    $8/255$ & $0.54$ & $0.18$ & $0.34$ & $0.39$ & $0.58$ & $0.57$ \\
+    \hline
+    \end{tabular}
+\caption{Pearson correlation $r$ between test loss penalty due to FGSM attack and dataset label sharpness $\KFh$, over all datasets and all training sizes. ``RN'' = ResNet, ``V'' = VGG.}
+\label{tab:adv}
+\end{wraptable}
+As expected, the loss penalty is typically worse for models trained on datasets with higher $\KF$, implying a smaller expected robustness radius.
+We see that medical datasets, which typically have higher $\KF$ than natural datasets (Fig. \ref{fig:kf_vs_dd}), are indeed typically more susceptible to attack, as was found in \citet{ma2021understanding}.1 we show example clean and attacked images for each medical image dataset for $\epsilon=2/255$. A clinical practitioner may not notice any difference between the clean and attacked images upon first look,\footnote{That being said, the precise physical interpretation of intensity values in certain medical imaging modalities, such as Hounsfield units for CT, may reveal the attack upon close inspection.} yet the attack makes model predictions completely unreliable. This indicates that adversarially-robust models may be needed for medical image analysis scenarios where potential attacks may be a concern.%, due to the safety-critical nature of such tasks.
+
+
+     
+
+
+
+
+
+\section{Connecting Representation Intrinsic Dimension to Dataset Intrinsic Dimension and Generalization}
+
+\label{sec:exp:drepr_scaling}
+The scaling of network generalization ability with dataset intrinsic dimension $\dd$ (Sec. \ref{sec:exp:ddata_scaling}) motivates us to study the same behavior in the space of the network's learned hidden representations for the dataset. In particular, we follow \citep{ansuini2019intrinsic,gong2019intrinsic} and assume 
+that an encoder in a neural network maps input images to some $\dr$-dimensional manifold of \textit{representations} (for a given layer), with $\dr \ll n$. %In this section, we wish to extend our generalization scaling formalism to $\dr$, and connect $\dr$ to $\dd$.
+As in the empirical work of \citet{ansuini2019intrinsic}, we consider the intrinsic dimensionality of the representations of the final hidden layer of $f$.
+Recall that the test loss can be bounded above as $L = \mathcal{O} (K_L\max (K_f, \KF)N^{-1/\dd})$ (Thm. \ref{thm:scaling_dd}). A similar analysis can be used to derive a loss scaling law for $\dr$, as follows.
+
+
+
+\begin{theorem}[Generalization Error and Learned Representation Intrinsic Dimension Scaling Law]
+  \label{thm:scaling_dr}
+  $L\simeq\mathcal{O}(K_LN^{-1/\dr})$, where $K_L$ is the Lipschitz constant for $L$.
+\end{theorem}
+
+3 due to length constraints, but the key is to split $f$ into a composition of an encoder and a final layer and analyze the test loss in terms of the encoder's outputted representations.
+Similarly to Eq. \eqref{eq:loss_scaling_dd}, $K_L$ is fixed for all experiments, such that we can simplify this result to $ L\simeq\mathcal{O}(N^{-1/\dr})$, \ie, 
+\begin{equation}
+    \label{eq:dr_logscaling}
+    \log L \lesssim -\frac{1}{\dr}\log N + b
+\end{equation}
+for some constant $b$. This equation is of the same form as the loss scaling law based on the \textit{dataset} intrinsic dimension $\dd$ of Thm. \ref{thm:scaling_dd}. This helps provide theoretical justification for prior empirical results of $L$ increasing with $\dr$ (\cite{ansuini2019intrinsic}, as well as for it being similar in form to the scaling of $L$ with $\dd$ (Fig. \eqref{eq:loss_scaling_dd}).
+
+In Fig. \ref{fig:loss_vs_reprdim} we evaluate the scaling of log test loss with the $\dr$ of the training set (Eq. \eqref{eq:dr_logscaling}), for each model, dataset, and training set size as in Sec. \ref{sec:exp:ddata_scaling}. The estimates of $\dr$ are made using TwoNN on the final hidden layer representations computed from the training set for the given model, as in \citet{ansuini2019intrinsic}.1, as well as results from using the MLE estimator to compute $\dr$.
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=0.98\textwidth]{figs/repr_dim_loss_scaling_twonn.pdf}
+    \caption{Scaling of log test set loss/generalization ability with the intrinsic dimension of final hidden layer learned representations of the training set ($\dr$), for natural and medical datasets. Each point corresponds to a (model, dataset, training set size) triplet. Medical dataset results are shown in blue shades, and natural dataset results are shown in red.}
+    \label{fig:loss_vs_reprdim}
+\end{figure}
+
+
+
+We see that generalization error typically increases with $\dr$, in a similar shape as the $\dd$ scaling (Fig. \ref{fig:loss_vs_datadim}). The similarity of these curves may be explained by $\dr\lesssim\dd$, or other potential factors unaccounted for. The former arises if the loss bounds of Theorems \ref{thm:scaling_dd} and \ref{thm:scaling_dr} are taken as \textit{estimates}:
+
+
+\begin{theorem}[Bounding of Representation Intrinsic Dim. with Dataset Intrinsic Dim.]
+\label{thm:reprdimbound}
+Let Theorems \ref{thm:scaling_dd} and \ref{thm:scaling_dr} be taken as estimates, \ie, $L\approx K_L\max(K_{f},K_{\mathcal{F}})N^{-1/\dd}$ and $L\approx K_LN^{-1/\dr}$. Then, $\dr\lesssim\dd$.
+\end{theorem}
+
+\begin{proof}
+5 for the full proof.
+\end{proof}
+
+
+In other words, the intrinsic dimension of the training dataset serves as an upper bound for the intrinsic dimension of the final hidden layer's learned representations. While a rough estimate, we found this to usually be the case in practice, shown in Fig. \ref{fig:dr_vs_dd} for all models, datasets and training sizes. Here, $\dr=\dd$ is shown as a dashed line, and we use the same estimator (MLE, Sec.2).
+
+Intuitively, we would expect $\dr$ to be bounded by $\dd$, as $\dd$ encapsulates all raw dataset information, while learned representations prioritize task-related information and discard irrelevant details \citep{tishby2015deep}, resulting in $\dr\lesssim\dd$. Future work could investigate how this relationship varies for networks trained on different tasks, including supervised (\eg, segmentation, detection) and self-supervised or unsupervised learning, where $\dr$ might approach $\dd$.
+
+
+

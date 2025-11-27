@@ -1,0 +1,331 @@
+\title{TabRepo: A Large Scale Repository of Tabular Model Evaluations and its AutoML Applications}
+
+\begin{abstract}
+We introduce \tabrepo{}, a new dataset of tabular model evaluations and predictions. \tabrepo{} contains the predictions and metrics of \realnumhps{} models evaluated on \realnumdatasets{} classification and regression datasets.
+We illustrate the benefit of our dataset in multiple ways.
+First, we show that it allows to perform analysis such as comparing Hyperparameter Optimization against current AutoML systems while also considering ensembling at marginal cost by using precomputed model predictions. 
+Second, we show that our dataset can be readily leveraged to perform transfer-learning. In particular, we show that applying standard transfer-learning techniques allows to outperform current \sota{} tabular systems in accuracy, runtime and latency.
+
+\end{abstract}
+
+\section{Introduction}
+
+
+
+
+
+Machine learning on structured tabular data has a long history due to its wide range of practical applications.
+Significant progress has been achieved through improving supervised learning models,
+with key method landmarks including SVM \citep{hearst1998}, Random Forest \citep{breiman2001} and Gradient Boosted Trees \citep{friedman2001}.
+Recent methods include pretraining transformer models \citep{hollmann2022,zhu2023xtab} and combining non-parametric and deep-learning techniques \citep{gorishniy2023}.
+
+AutoML methods build upon base models to achieve superior performance and ease of use for ML practitioners \citep{ThoHutHooLey13-AutoWEKA}.
+Auto-Sklearn \citep{feurer2015, feurer2022} was an early approach that proposed to select pipelines to ensemble from the Sklearn library and meta-learn the hyperparameter optimization (HPO) with offline evaluations.
+The approach was successful and won several AutoML competitions. Several frameworks followed with other AutoML approaches such as TPOT \citep{olson2019}, H2O AutoML \citep{ledell2020}, and AutoGluon \citep{erickson2020}.
+AutoGluon showed particularly strong performance by combining bagging \citep{breiman1996}, ensembling \citep{caruana2004}, and multi-layer stacking \citep{wolpert1992}.
+
+The proliferation of supervised learning models and AutoML systems led to several works focusing on benchmarking tabular methods.
+Recently, \citet{gijsbers2024amlb} proposed the AutoMLBenchmark (\amlb{}), a unified benchmark to compare tabular methods.
+Because \amlb{} evaluates across 1040 tasks, evaluating a single method on \amlb{} requires 40000 CPU hours of compute\footnote{The CPU hour requirement is based on running the full 104 datasets in \amlb{} across 10 folds for both 1 hour and 4 hour time limits on an 8 CPU machine.}.
+Due to this cost, the benchmark is only run once a year, with heavy consideration taken to which methods should be included to mitigate compute concerns.
+This makes it expensive to perform thorough ablations and explore research directions.
+For instance, measuring the impact of ensembling requires running the ablated method on the entire benchmark for every setting tested.
+The main contributions of this paper are:
+
+\begin{itemize}
+    \item A large scale evaluation of tabular models comprising \realnumevaluations{} model predictions with \realnumhps{} models from \realnumframeworks{} different families densely evaluated across \realnumdatasets{} datasets and \realnumseeds{} seeds.
+    \item We show how the repository can be used to study at marginal cost the performance of tuning models while considering ensembles by leveraging precomputed model predictions.
+    \item We show that \tabrepo{} combined with transfer learning achieves \sota{} results compared to AutoML systems in accuracy and training time.
+\end{itemize}
+
+This paper first reviews related work before describing the \tabrepo{} dataset.
+We then illustrate how \tabrepo{} can be leveraged to compare HPO with ensemble against AutoML systems.
+Finally, we use transfer-learning to achieve a new \sota{} on tabular data.
+
+
+
+\section{Related work}
+
+
+Acquiring and re-using offline evaluations to eliminate redundant computation has been proposed in multiple compute intensive fields of machine learning.
+In HPO, several works proposed to acquire a large number of evaluations to simulate the performance of different optimizers across many seeds which can easily become prohibitive otherwise,
+in particular when the blackbox function optimized involves training a large neural network \citep{Klein2019a,Eggensperger2021}.
+Similarly, tabular benchmarks were acquired for Neural Architecture Search \citep{ying19,Dong2020} as it was observed that, due to the large cost of comparisons, not enough seeds were used to distinguish methods properly from random-search \citep{yang2020}.
+
+While the cost of tabular methods can be orders of magnitude lower than training large neural networks, it can still be significant in particular when considering many methods, datasets, and seeds.
+Several works proposed to provide benchmarks with precomputed results, in particular \citet{gorishniy2021,grinsztajn2022,mcelfresh2023neural}. 
+One key differentiator with those works is that \tabrepo{} exposes model {\em predictions} which enables to simulate nearly instantaneously not only the errors of single models but also {\em ensembles} of any subset of available models.
+To the best of our knowledge, the only prior works that considered providing a dataset compatible with ensemble predictions is \citet{borchert2022} in the context of time-series and
+\citet{purucker2022, purucker2023cmaes} in the context of tabular prediction.
+Our work differs from \citet{purucker2022, purucker2023cmaes} as they train a different number of models per dataset (sparse) and focus on evaluating the performance of ensembling algorithms, whereas we obtain results for all models on all datasets (dense) and use transfer-learning to create a model portfolio.
+Additionally they consider 31 classification datasets whereas we include \realnumdatasets{} datasets both from regression and classification.
+
+
+An important advantage of acquiring offline evaluations is that it allows to perform transfer-learning, e.g. to make use of the offline data to speed up the tuning of model hyperparameters.
+In particular, a popular transfer-learning approach is called Portfolio learning, or Zeroshot HPO, and consists of selecting greedily a set of models that are complementary and are then likely to perform well on a new dataset \citep{xu2010}.
+Due to its performance and simplicity, the method has been applied in a wide range of applications ranging from HPO \citep{wistuba2015}, time-series \citep{borchert2022}, computer vision \citep{arango2023}, tabular deep-learning \citep{winkelmolen2020,zimmer2021autopytorch}, and AutoML \citep{feurer2015, feurer2022}.
+
+The current \sota{} for tabular methods in terms of accuracy is arguably AutoGluon \citep{erickson2020} in light of recent large scale benchmarks \citep{gijsbers2024amlb}.
+The method trains models from different families with bagging: each model is trained on several distinct non-overlapping random splits of the training dataset to generate out-of-fold predictions whose scores are likely to align well with performance on the test set.
+Then, another layer of models is trained whose inputs are both the original inputs concatenated with the predictions of the models in the previous layers.
+Finally, an ensemble is built on top of the last layer model predictions using ensemble selection \citep{caruana2004}.
+Interestingly, this work showed that excellent performance could be achieved without performing HPO and instead using a fixed list of manually selected model configurations.
+However, the obtained solution can be expensive for inference due to the use of model stacking and requires human experts to select default model configurations.
+Our work shows that using \tabrepo{}, one can alleviate both caveats by learning default configurations which improves accuracy and latency when matching compute budget.
+
+
+
+\section{\tabrepo{}
+
+
+We now describe \tabrepo{} and our notations to define its set of evaluations and predictions. In what follows, we denote $[n] = \{1, \dots, n\}$ to be the set of the first $n$ integers.
+
+\paragraph{Model bagging.}
+All models are trained with {\em bagging} to better estimate their hold-out performance and improve their accuracy.
+Given a dataset split into a training set $(\train{X}, \train{y})$ and a test set $(\test{X}, \test{y})$ and a model $f^\param$ with parameters $\param$, we train $\numbagging$ models on $\numbagging$ non-overlapping cross-validation splits of the training set denoted
+$\{(\bag{\train{X}}{b}, \bag{\train{y}}{b}), (\bag{\val{X}}{b}, \bag{\val{y}}{b})\}_{b=1}^\numbagging$. Each of the $\numbagging{}$ model parameters are fitted by ERM, i.e. by minimizing the loss
+\[\param_b = \argmin_{\param} \loss(\model^{\param}(\bag{\train{X}}{b}), \bag{\train{y}}{b}), \quad \text{ for } b \in [\numbagging].\]
+where the loss $\loss$ is calculated via root mean-squared error (RMSE) for regression, the area under the receiver operating characteristic curve (AUC) for binary classification and log loss for multi-class classification. We choose these evaluation metrics to be consistent with \amlb{} defaults \citep{gijsbers2024amlb}.
+
+One can then construct {\em out-of-fold predictions}\footnote{Note that for classification tasks, we refer to {\em prediction probabilities} as simply {\em predictions} for convenience.} denoted as $\train{\tilde{y}}$ that are computed on unseen data for each bagged model, i.e. predictions are obtained by applying the model on the validation set of each split i.e. $\model^{\param_b}(\bag{\val{X}}{b})$ which allows to estimate the performance on the training set for unseen data. To predict on a test dataset $\test{X}$, we average the predictions of the $\numbagging$ fitted models,
+\begin{equation}
+\test{\tilde{y}} = \frac{1}{\numbagging{}}\sum_{b=1}^\numbagging \model^{\param_b}(\test{X}).
+\label{eq:bagging-pred}
+\end{equation}
+
+\paragraph{Datasets, predictions and evaluations.}
+We collect evaluations on $\numdatasets=\realnumdatasets$ datasets from OpenML \citep{vanschoren2013}.
+For selecting the datasets, we combined two prior tabular dataset suites.
+The first is from the AutoMLBenchmark \citep{gijsbers2024amlb},
+and the second is from the Auto-Sklearn 2 paper \citep{feurer2022}.
+For each dataset, we generate $\numseeds=3$ tasks by selecting the first three of ten cross-validation fold as defined in OpenML's evaluation procedure, resulting in $\numtasks = \numdatasets \times \numseeds$ tasks in total. The list of $\numtasks$ tasks' features and labels are denoted
+ \[\{((\train{X_i}, \train{y_i}), (\test{X_i}, \test{y_i}))\}_{i=1}^\numtasks\]
+
+where $X_i^s \in \R^{\numdatapoints_i^s \times \featuredim_i}$ and $y_i \in \R^{\numdatapoints_i^s \times \outputdim_i}$ for each split $s \in \{\text{train}, \text{test}\}$, $\numdatapoints_i^s$ denotes the number of rows available in each split.
+Feature and label dimensions are denoted with $\featuredim_i$ and $\outputdim_i$ respectively.
+We use a loss $\loss_i$ for each task depending on its type, in particular we use AUC for binary classification, log loss for multi-class classification and RMSE for regression.
+For each task, we fit each model on $\numbagging=\realnumbagged$ cross-validation splits before generating predictions with Eq. \ref{eq:bagging-pred}. The predictions on the training and test splits for any task $i \in [\numtasks]$ and model $j \in [\numhps]$ are denoted as
+\begin{equation}
+\train{\tilde{y}_{ij}}\in\R^{\train{\numdatapoints_i} \times \outputdim_i}, \quad\quad 
+\test{\tilde{y}_{ij}} \in \R^{\test{\numdatapoints_i} \times \outputdim_i}.
+\label{eq:predictions}
+\end{equation}
+
+We can then obtain losses for all tasks and models with
+\begin{equation}
+\train{\lossobserv_{ij}} = \loss_i(\train{\tilde{y}_{ij}}, \train{y_i}), \quad\quad 
+\test{\lossobserv_{ij}} = \loss_i(\test{\tilde{y}_{ij}}, \test{y_i}).
+\label{eq:losses}
+\end{equation}
+For all tasks and models, we use the AutoGluon featurizer to preprocess the raw data prior to fitting the models \citep{erickson2020}.
+\paragraph{Models available.} For base models, we consider Linear models, KNearestNeighbors, RandomForest \citep{breiman2001}, ExtraTrees \citep{geurts2006}, XGBoost \citep{chen2016}, \lgbm{} \citep{ke2017}, CatBoost \citep{prokhorenkova2018}, and Multi-layer perceptron (MLP).
+We evaluate all {\em default} configurations used by AutoGluon for those base models together with $50$ random configurations for Linear models and \knn{} and $200$ random configurations for the remaining families.
+We also include a single default configuration each of \tabpfn{} \citep{hollmann2022} and \fttransformer{} \citep{gorishniy2021} which use GPUs to accelerate training.
+In total, this yields $\numhps = \realnumhps$ configurations.
+All configurations are run for one hour.
+For the models that are not finished in one hour, we early stop them and use the best checkpoint according to the validation score to generate predictions.
+In addition, we evaluate 6 AutoML frameworks: Auto-Sklearn 1 and 2 \citep{feurer2015, feurer2022}, FLAML \citep{wang2021}, LightAutoML \citep{vakhrushev2021}, H2O AutoML \citep{ledell2020} and AutoGluon \citep{erickson2020}.
+We run all model configurations and AutoML frameworks via the AutoMLBenchmark \citep{gijsbers2024amlb} for both 1h and 4h fitting time budget, using the implementations provided by the AutoML system authors.
+For every task and model combination, we store losses defined in Eq. \ref{eq:losses} and predictions defined in Eq. \ref{eq:predictions}.
+Storing evaluations for every ensemble would be clearly infeasible given the large set of base models considered.
+However, given that we also store base model predictions, an ensemble can be fit and evaluated on the fly for any set of configurations by querying lookup tables as we will now describe.
+\paragraph{Ensembling.}
+
+Given the predictions from a set of models on a given task, we build ensembles by using the \citet{caruana2004} approach.
+The procedure selects models by iteratively picking the model such that the average of selected models' predictions minimizes the error.
+Formally, given $\numhps{}$ model predictions $\{\tilde{y}_1, \dots, \tilde{y}_\numhps{}\} \in \mathbb{R}^\numhps{}$, the strategy selects $\numcaruana{}$ models $j_1, ..., j_\numcaruana{}$ iteratively as follows
+\begin{equation*}
+j_1 = \argmin_{j_1\in \numhps}{\loss(\tilde{y}_{j_1}, \train{y})}, \quad\quad
+j_n = \argmin_{j_n\in \numhps}{\loss(\frac{1}{n} \sum_{c=1}^n \tilde{y}_{j_c}, \train{y})}.
+\end{equation*}
+The final predictions are obtained by averaging the selected models $j_1, \dots, j_\numcaruana{}$:
+\begin{equation}
+\frac{1}{\numcaruana{}} \sum_{c=1}^\numcaruana{} \tilde{y}_{j_c}.
+\label{eq:caruana}
+\end{equation}
+ 
+Note that the sum is performed over the vector of model indices which allow to potentially select a model multiple times and justifies the term "weight".
+
+Critically, the performance of any ensemble of configurations can be calculated by summing the predictions of base models obtained from lookup tables.
+This is particularly fast as it does not require any retraining but only recomputing losses between weighted predictions and target labels.
+While we could leverage other ensembling methods in future, we prioritize \cite{caruana2004} in this work due to its widespread adoption, strong performance, and fast training time.
+\begin{figure}
+\center
+\includegraphics[width=0.99\textwidth]{figures/data-analysis.pdf}
+\caption{Cluster map of model rank for all datasets (left), correlation of model ranks (middle) and average runtime distribution over every dataset (right).
+For readability, only the first 3 configurations of each model family are displayed in the left and middle figures. The performance of models that could not be fitted successfully are represented in black.
+ \label{fig:data-analysis}}
+\end{figure}
+
+
+
+\section{Comparing HPO and AutoML systems}
+
+\label{section:hpo}
+We now show how \tabrepo{} can be used to analyze the performance of base model families and the effect of tuning hyperparameters with ensembling against recent AutoML systems.
+All experiments are done at marginal costs given that they just require querying precomputed evaluations and predictions.
+
+\paragraph{Model error and runtime distributions.}
+In Fig. \ref{fig:data-analysis}, we start by analyzing the performance of different base models\footnote{All models considered run successfully except for \tabpfn{}, \fttransformer{} and \knn{} where failures are depicted in black in Fig. \ref{fig:data-analysis} left which are due to memory or implementation issues.
+}.
+In particular, the rank of model losses over datasets shows that while some model families dominate in performance on aggregate such as gradient boosted methods \catboost{} and \lgbm{}, in some tasks \mlp{} are better suited.
+Looking at model correlations, we see interesting patterns as some model families are negatively correlated between each other such as \mlp{} and \xgboost{} which hints at the potential benefit of ensembling. 
+Next, we plot the distribution of runtime configurations over all \realnumdatasets{} datasets.
+We see that an order of magnitude separates respectively the training runtime of \catboost{} from \mlp{}, \xgboost{} and \lgbm{}, with the remaining methods being faster still.
+Importantly, while \catboost{} obtains the strongest average rank among model families, it is also the most expensive which is an important aspect to take into account when considering possible training runtime constraints as we will see later in our experiments.
+\paragraph{Effect of tuning and ensembling on model error.}
+
+We now compare methods across all tasks by using both ranks and normalized errors. Ranks are computed over the $\numhps$ different models and all AutoML frameworks. Normalized errors are computed by reporting the relative distance to a topline loss compared to a baseline with
+$\frac{l_{\text{method}} - l_{\text{topline}}}{l_{\text{baseline}}- l_{\text{topline}}}$
+while clipping the denominator to 1e-5 and the final score value to $[0, 1]$. We use respectively the top and median score among all scores to set the topline and baseline. The median allows to avoid having scores collapse when one model loss becomes very high which can happen frequently for regression cases in presence of overfitting or numerical instabilities.
+
+\paragraph{Comparison.} In Fig. \ref{fig:tuning-impact}, we show the aggregate of the normalized error across all tasks.
+For each model family, we evaluate the default hyperparameters, the best hyperparameter obtained after a random search of 4 hours and an ensemble built on top of the best 20 configurations obtained by this search. 
+In Fig. \ref{fig:tuning-impact}, we see that \catboost{} dominates other models while \fttransformer{} and \lgbm{} are the runner-ups. Tuning model hyperparameters and ensembling improves all models and ensembling allows \lgbm{} to match \catboost{}'s accuracy. No model is able to beat \sota{} AutoML systems even with tuning and ensembling. This is unsurprising as all \sota{} tabular methods considered multiple model families in order to reach good performance and echoes the finding of \citet{erickson2020}.
+\paragraph{Hyperparameters importance.}
+We just saw how tuning and ensembling can improve the performance of each model family.
+In Fig. \ref{fig:hyperparameter-importance}, we show the importance of hyperparameters for each family that can be evaluated on CPU.
+We use the fANOVA method proposed by \citet{hutter2014} on each task and numerize features to fit random forest models using the search space provided in section \ref{sec:config-space}.
+The importance are computed on each task and then aggregated.
+
+We observe that hyperparameter importance mostly follows practitioner intuition.
+For instance, the number of neighbors, the regularization, and the depth are the top hyperparameters respectively for \knn{}, Linear model and \catboost{} as expected.
+For \mlp{}, the most important hyperparameters are the activation and whether to use batch-normalization.
+For this model family, some options such as using batch-normalization dominate.
+One could consider model-based or multi-fidelity approaches to generate configurations for model families as opposed to random-search as proposed in \citep{winkelmolen2020} to exploit parts of the search-space that are better suited.
+
+
+\begin{figure}
+\center
+\includegraphics[width=0.99\textwidth]{figures/tuning-impact}
+\caption{Normalized error for all model families when using default hyperparameters, tuned hyperparameters, and ensembling after tuning. All methods are run with a 4h budget. \label{fig:tuning-impact}}
+\end{figure}
+
+\begin{figure}
+\center
+\includegraphics[width=0.99\textwidth]{figures/hyperparameter-importance}
+\caption{Hyperparameter importance for each model family using the fANOVA method from \citet{hutter2014}. Y-axis is in log-space. \label{fig:hyperparameter-importance}}
+\end{figure}
+
+\begin{table}
+\caption{Normalized error, rank, training and inference time
+averaged over all tasks given 4h training budget. Inference time is calculated as the prediction time on the test data divided by the number of rows in the test data.\label{tab:results}}
+\center
+\footnotesize
+\begin{tabular}{lllll}
+\toprule
+method & normalized-error & rank & time fit (s) & time infer (s) \\
+\midrule
+\textbf{Portfolio (ensemble) (ours)} & \textbf{0.365} & \textbf{168.7} & 6275.5 & 0.050 \\
+AutoGluon & 0.389 & 208.2 & 5583.1 & 0.062 \\
+Portfolio (ours) & 0.434 & 232.5 & 6275.5 & 0.012 \\
+Autosklearn2 & 0.455 & 243.5 & 14415.9 & 0.013 \\
+Lightautoml & 0.466 & 246.1 & 9173.9 & 0.298 \\
+Flaml & 0.513 & 317.8 & 14267.0 & 0.002 \\
+CatBoost (tuned + ensemble) & 0.524 & 267.3 & 9065.2 & 0.012 \\
+H2oautoml & 0.526 & 337.0 & 13920.1 & 0.002 \\
+CatBoost (tuned) & 0.534 & 284.7 & 9065.2 & 0.002 \\
+LightGBM (tuned + ensemble) & 0.534 & 268.7 & 3528.9 & 0.010 \\
+LightGBM (tuned) & 0.566 & 304.2 & 3528.9 & 0.001 \\
+CatBoost (default) & 0.586 & 341.2 & 456.8 & 0.002 \\
+MLP (tuned + ensemble) & 0.594 & 402.5 & 5771.8 & 0.098 \\
+XGBoost (tuned + ensemble) & 0.628 & 357.9 & 4972.7 & 0.013 \\
+MLP (tuned) & 0.634 & 451.9 & 5771.8 & 0.014 \\
+XGBoost (tuned) & 0.638 & 376.5 & 4972.7 & 0.002 \\
+FTTransformer (default) & 0.690 & 532.1 & 567.4 & 0.003 \\
+LightGBM (default) & 0.714 & 491.5 & 55.7 & 0.001 \\
+XGBoost (default) & 0.734 & 522.2 & 75.1 & 0.002 \\
+MLP (default) & 0.772 & 629.4 & 38.2 & 0.015 \\
+ExtraTrees (tuned + ensemble) & 0.782 & 544.2 & 538.3 & 0.001 \\
+ExtraTrees (tuned) & 0.802 & 572.5 & 538.3 & 0.000 \\
+RandomForest (tuned + ensemble) & 0.803 & 578.3 & 1512.2 & 0.001 \\
+RandomForest (tuned) & 0.816 & 598.0 & 1512.2 & 0.000 \\
+TabPFN (default) & 0.837 & 731.9 & 3.8 & 0.016 \\
+LinearModel (tuned + ensemble) & 0.855 & 873.8 & 612.4 & 0.038 \\
+LinearModel (tuned) & 0.862 & 891.6 & 612.4 & 0.006 \\
+ExtraTrees (default) & 0.883 & 788.6 & 3.0 & 0.000 \\
+RandomForest (default) & 0.887 & 773.9 & 13.8 & 0.000 \\
+LinearModel (default) & 0.899 & 940.1 & 7.1 & 0.014 \\
+KNeighbors (tuned + ensemble) & 0.928 & 980.8 & 12.0 & 0.001 \\
+KNeighbors (tuned) & 0.937 & 1016.5 & 12.0 & 0.000 \\
+KNeighbors (default) & 0.973 & 1149.1 & 0.6 & 0.000 \\
+\bottomrule
+\end{tabular}
+
+\end{table}
+
+
+\section{Portfolio learning with \tabrepo{}
+
+\label{section:portfolio}
+
+We just saw how \tabrepo{} can be leveraged to analyze the performance of frameworks when performing tuning and ensembling.
+In particular, we saw that ensembling a model family after tuning does not outperform current AutoML systems.
+We now show how \tabrepo{} can be combined with transfer learning techniques to perform the tuning search offline and outperform current AutoML methods.
+
+\paragraph{Portfolio learning.}
+To leverage offline data and speed-up model selection, \citet{xu2010} proposed an approach to learn a portfolio of complementary configurations that performs well on average when evaluating all the configurations of the portfolio and selecting the best one.
+
+Similarly to Caruana ensemble selection described in Eq. \ref{eq:caruana}, the method iteratively selects $\numportfolio < \numhps$ configurations as follows
+
+\begin{equation*}
+j_1 = \argmin_{j_1\in [\numhps]}{\E_{i\sim [\numtasks]}[\train{\lossobserv_{ij_1}}]}, \quad\quad
+j_n = \argmin_{j_n \in [\numhps]}{\E_{i\sim [\numtasks]}[~\min_{k\in [n]}\train{\lossobserv_{ij_k}}}].
+\end{equation*}
+
+
+At each iteration, the method greedily picks the configuration that has the lowest average error when combined with previously selected configurations.
+
+\paragraph{Anytime portfolio.}
+Fitting portfolio configurations can be done in an {\em any-time} fashion given a fitting time budget.
+To do so, we evaluate portfolio configurations sequentially until the budget is exhausted and use only models trained up to this point to select an ensemble. 
+In cases where the first configuration selected by the portfolio takes longer to run than the constraint, we instead report the result of a fast baseline as in \citet{gijsbers2024amlb}.
+
+\begin{figure}
+\center
+\includegraphics[width=0.85\textwidth]{figures/scatter-perf-vs-time}
+\includegraphics[width=0.99\textwidth]{figures/critical-diagram}
+\caption{Top: scatter plot of average normalized error (left) and rank (right) against fitting training time budget. Bottom: Critical difference (CD) diagram showing average rank between method selected and which methods are tied statistically by a horizontal bar.
+\label{fig:scatter}
+}
+\end{figure}
+
+\paragraph{Evaluations.}
+
+We evaluate the anytime portfolio approach in a standard leave-one-out setting. When evaluating on the $i$-th dataset, we compute portfolio configurations on $\numdatasets - 1$ training datasets by excluding the $i$-th test dataset to avoid potential leakage. 
+
+Results are reported in Tab. \ref{tab:results} when considering a 4h fitting budget constraint.
+ 
+
+We report both the performance of the best model according to validation error (Portfolio) and when ensembling the selected portfolio configurations (Portfolio (ensemble)). The portfolio combined with ensembling outperforms AutoGluon for both accuracy and latency given the same 4h fitting budget even without stacking.
+When picking the best model without ensembling, the portfolio still retains good performance and outperforms all frameworks other than AutoGluon.
+
+In Fig. \ref{fig:scatter}, we report the performance for different fitting budgets.
+Ensembles of portfolio configurations can beat all AutoML frameworks for all metrics for 1h, 4h and 24h budget without requiring stacking which allows to obtain a lower latency compared to AutoGluon.
+Critical difference (CD) diagrams from \citet{demvsar2006} show that while Portfolio has better aggregate performance than other methods, AutoGluon and Portfolio are tied statistically and are the only methods that are statistically better than all baselines.
+Interestingly, a baseline consisting of tuning and ensembling CatBoost models is surprisingly strong and outperforms multiple AutoML methods. As in the previous section, all evaluations are obtained from pre-computed results in \tabrepo{}.
+
+\begin{figure}
+\center
+\includegraphics[width=0.99\textwidth]{figures/sensitivity}
+\caption{Impact on normalized error when varying the (a) number of configurations per family, (b) number of training datasets, (c) portfolio size and (d) number of ensemble members.
+\label{fig:sensitivity}}
+\end{figure}
+
+\paragraph{How much data is needed?}
+We have seen that \tabrepo{} allows to learn portfolio configurations that can outperform \sota{} AutoML systems. Next, we analyze the question of how much data is needed for transfer learning to achieve strong results in two dimensions, namely: how many offline configurations and datasets are required to reach good performance?
+While important, these dimensions are rarely analyzed in previous transfer learning studies due to their significant cost.
+
+In Fig. \ref{fig:sensitivity}, we vary both of those dimensions independently with a budget of 4h for all methods. When evaluating on a test dataset, we pick a random subset of configurations $\numhps{}'$ per model family in the first case (\ref{fig:sensitivity}a) and a random subset of $\numdatasets' < \numdatasets$ datasets in the second case (\ref{fig:sensitivity}b) and report mean and standard error over 10 different seeds.
+Portfolio with ensembling starts outperforming AutoGluon at around 10 configurations or training datasets. Having more datasets or more configurations in offline data both improve the final performance up to a certain point with a saturating effect around 150 offline configurations or offline datasets.
+
+Next, we investigate the impact of the portfolio size in Fig. \ref{fig:sensitivity}c. We observe that a portfolio of size 3 is sufficient to outperform all AutoML systems except AutoGluon, and a portfolio of size 15 is sufficient to outperform AutoGluon, with consistent benefit with increasing portfolio size.
+
+
+Finally, we investigate the impact of the number of selected models in the ensemble defined in Eq. \ref{eq:caruana} in Fig. \ref{fig:sensitivity}d.
+While AutoML systems typically use large values (for instance AutoGluon uses 100 iterations), we demonstrate that the best performance is achieved at a mere 15 iterations, with more iterations having no measurable improvement.
+
+
+
+
+
