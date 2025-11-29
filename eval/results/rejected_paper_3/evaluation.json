@@ -1,0 +1,116 @@
+{
+  "paper_id": "rejected_paper_3",
+  "paper_file": "input/rejected_paper_3.txt",
+  "paper_type": "rejected",
+  "executive_summary": "This study investigates the behavioral changes within heterogeneous agent populations in competitive games, addressing the limitations of using conditional neural networks (like OpenAIFive and NeuPL) which can lead to overgeneralization and hinder individual specialization. The authors propose Joint Entropy Minimization (JEM), a novel policy gradient formulation, to enable the training of 'Generalist' populations into 'Specialists'. The research combines theoretical analysis, algorithm development, and experimental validation in the Naruto Mobile game environment.\n\nThe results demonstrate that JEM promotes increased strategy diversity, improved competitive performance, and reduced outcome disparity among agents. By individualizing the advantage estimation function and policy learning, JEM allows agents to maximize their unique strengths relative to the average population behavior. Experiments show a significant increase in behavioral diversity, improved win rates for specialists, and a more equitable distribution of outcomes. The paper concludes that fostering specialization within heterogeneous populations leads to more competitive and balanced outcomes, while acknowledging the increased computational cost as a limitation.",
+  "generated_weaknesses": [
+    "The additional computation required for learning the specialization of individual agents when the population size is large. JEM relies on learning an individualized neural net behavior for each unique agent in a population."
+  ],
+  "generated_strengths": [
+    "Clear problem statement addressing a limitation of existing population-based learning methods.",
+    "Theoretically grounded approach, formulating Skill-Transfer in terms of Mutual Information and using Policy Gradient methods.",
+    "Novel algorithm (JEM) designed to address the identified problem.",
+    "Experimental validation in a complex game environment (Naruto Mobile).",
+    "Comprehensive evaluation metrics to assess behavior diversity, competitive performance, and outcome disparity.",
+    "Population size ablation study."
+  ],
+  "reviewer_similarities": [
+    {
+      "reviewer_id": "reviewer_1",
+      "reference_summary": "This paper studies how a heterogeneous group of agents learn while interacting in a competitive way. More precisely, the authors focus on the question of specialization. They propose a way to make agents who start as generalists learn how to specialize.",
+      "summary_similarity": 0.5685,
+      "reference_weakness": "I found the paper a bit hard to read, partly due some typos or symbols that are not (or not well enough) defined or explained.",
+      "weakness_similarity": 0.1754,
+      "reference_strength": "The paper considers an interesting question. The tools used (based on information theory) also seem relevant.",
+      "strength_similarity": 0.1941
+    },
+    {
+      "reviewer_id": "reviewer_2",
+      "reference_summary": "This paper studies the behavioural change of a heterogeneous population, and shows that existing approaches may overgeneralize the population as Generalists and hinder individual learning of specialization. A new method based on joint entropy maximization is proposed. The proposed method is shown to increase behavioural diversity and reduce performance disparity.",
+      "summary_similarity": 0.6432,
+      "reference_weakness": "Some important technical details about this paper lack clarity and need to be further clarified:\n1. While one of the main results, Equation 7, looks like mutual information, what does the term $w(x,y)$ of mutual information (defined in Equation 8) correspond to? An explicit connection to mutual information right after Equation 7 is helpful for understanding the claim \"The exchange of Policy Gradient between two agents results in the implicit maximization of their Mutual Information (MI) over time. \"\n2. Similarly, there seems to be a typo in Equation 10 (another key result). In addition, the terms in this equation have not been explained immediately following this equation, making it hard to understand the intuition.\n3.  While the paper has emphasized the disadvantage of \"generalist\", the proposed method (at least, Equation 10) still depends on the policy of the \"generalist.\"  Does the proposed method rely on the existing method to learn the policy of the \"generalist\"?  How does the proposed method strike a balance between being a \"generalist\" and being a \"specialist\"? Will this matter in certain scenarios? The discussion on these issues is not adequate.",
+      "weakness_similarity": 0.348,
+      "reference_strength": "1. The key research questions are well-motivated.\n2. The theoretical analysis of existing approaches, which shows the connection to mutual information, provides new insights.\n3. The proposed solution is reasonable.\n4. The paper is generally well-written.",
+      "strength_similarity": 0.1783
+    },
+    {
+      "reviewer_id": "reviewer_3",
+      "reference_summary": "The paper investigates how to train heterogeneous agents in competitive games to learn specialized behaviors that leverage their unique strengths, rather than overgeneralizing to a common set of general skills. The paper proposes a novel policy gradient method called Joint Entropy Minimization (JEM), which minimizes the joint entropy between an agent's actions and the average actions of the population. The paper evaluates JEM on a fighting game environment with diverse character attributes and skills and shows that JEM leads to increased behavior diversity, improved win rates, and reduced outcome disparity among agents.",
+      "summary_similarity": 0.7956,
+      "reference_weakness": "- The writing of this paper is very unclear and the notation is not precise so it is very hard to follow what is the exact setting and main contribution of the paper.\n- The code is not provided for reproduction.",
+      "weakness_similarity": 0.1269,
+      "reference_strength": "- The paper addresses an interesting and relevant problem of learning heterogeneous behaviors for a diverse population of agents in competitive games.\n- The paper evaluates JEM on a realistic and challenging game environment, Naruto Mobile, with over 300 unique characters and complex game mechanics. The paper uses several metrics to measure the behavior similarity, competitive win rate, and outcome disparity of the agents.",
+      "strength_similarity": 0.6775
+    },
+    {
+      "reviewer_id": "reviewer_4",
+      "reference_summary": "The authors propose a method, JEM, to increase the strategy diversity in population-based training in the hope that such a method would improve the performance. Empirical tests suggest that their method indeed improves upon the state of the art.",
+      "summary_similarity": 0.5081,
+      "reference_weakness": "I found the paper impossible to follow, and gave up on parsing it partway through. Perhaps this is in part due to my lacking certain pieces of background, but I do feel like I am at least somewhat in the target audience of this paper. Here are a few writing concerns, in no particular order.\n\n1. Many technical terms are not defined, some of which are fundamental to understanding the paper. These things ought to have formal, mathematical definitions considering their importance to the paper. Some examples:\n\n    a. Sec 2.1: What is a \"population\", and what does it mean for a population to be \"heterogeneous\"? \n\n    b. Sec 2.2: What is \"gradient exchange\"?\n\n    c. Sec 2.2.1: I understand x and y to stand in for a^i and a^ii respectively. Is this accurate? In any case this should be stated.\n\n    d. Sec 3: \"Generalist\" should be defined formally\n\n1. Should I be considering a partially-observable game, or a fully-observable game? The prelims suggest partial observability, but e.g. policies are conditioned on states, which suggests full observability\n1. My understanding is that the setting is a two-player zero-sum game. In that setting, a player should never correlate its action with the opposing player, i.e., the mutual information (8) should always be 0 in equilibrium. Why, then, is it interesting to consider (or, indeed, to optimize) the mutual information?\n\nThe experimental results seem reasonable, but my ability to parse them is essentially limited to \"I see figures in which the current paper seems to do well\".  \n\nDue to the writing issues alone, I don't think this paper is publishable in the current state. I vote to reject. If the authors could perform a revision that improves the quality of writing and explanations, I would read such a revision and may change my score. \n\nNitpicks (not affecting evaluation):\n\n1. $*$ should probably not be used as a generic multiplication symbol---prefer $\\cdot$ (or simply juxtaposition)\n1. Some brackets are improperly sized, e.g., Eq (3)\n1. Sec 2.2.1: Shouldn't the integral be actually a sum, since at the end of the day these training algorithms operate in discrete time?\n1. $\\log$ should always use the backslash, i.e., not $log$.\n1. It's a bit confusing to use Roman numerals to index the players; why not just use standard Arabic numerals (1, 2, ..., N), as is consistent with most game theory literature?\n1. Preliminaries typo: $S : O \\times O$ doesn't parse\n1. The paper contains a large number of grammatical errors, too many to enumerate. Proofreading would go a long way.\n1. Eq (10): it should be explciitly stated that $\\mathbb H()$ is the joint entropy (assuming that it actually is).",
+      "weakness_similarity": 0.2602,
+      "reference_strength": "The method seems novel and interesting, and seems to exhibit favorable experimental results over the state of the art.",
+      "strength_similarity": 0.1719
+    }
+  ],
+  "avg_summary_similarity": 0.6289,
+  "max_summary_similarity": 0.7956,
+  "min_summary_similarity": 0.5081,
+  "avg_weakness_similarity": 0.2276,
+  "max_weakness_similarity": 0.348,
+  "min_weakness_similarity": 0.1269,
+  "per_weakness_matches": [
+    {
+      "generated_weakness": "The additional computation required for learning the specialization of individual agents when the population size is large. JEM relies on learning an individualized neural net behavior for each unique agent in a population.",
+      "best_matching_reviewer": "reviewer_2",
+      "best_match_score": 0.348,
+      "matched_reference_weakness": "Some important technical details about this paper lack clarity and need to be further clarified:\n1. While one of the main results, Equation 7, looks like mutual information, what does the term $w(x,y)$ of mutual information (defined in Equation 8) correspond to? An explicit connection to mutual information right after Equation 7 is helpful for understanding the claim \"The exchange of Policy Gradient between two agents results in the implicit maximization of their Mutual Information (MI) over time. \"\n2. Similarly, there seems to be a typo in Equation 10 (another key result). In addition, the terms in this equation have not been explained immediately following this equation, making it hard to understand the intuition.\n3.  While the paper has emphasized the disadvantage of \"generalist\", the proposed method (at least, Equation 10) still depends on the policy of the \"generalist.\"  Does the proposed method rely on the existing method to learn the policy of the \"generalist\"?  How does the proposed method strike a balance between being a \"generalist\" and being a \"specialist\"? Will this matter in certain scenarios? The discussion on these issues is not adequate."
+    }
+  ],
+  "avg_best_weakness_match": 0.348,
+  "weakness_coverage_score": 0.0,
+  "aggregate_weakness_similarity": 0.3453,
+  "avg_strength_similarity": 0.3054,
+  "max_strength_similarity": 0.6775,
+  "min_strength_similarity": 0.1719,
+  "per_strength_matches": [
+    {
+      "generated_strength": "Clear problem statement addressing a limitation of existing population-based learning methods.",
+      "best_matching_reviewer": "reviewer_1",
+      "best_match_score": 0.2741,
+      "matched_reference_strength": "The paper considers an interesting question. The tools used (based on information theory) also seem relevant."
+    },
+    {
+      "generated_strength": "Theoretically grounded approach, formulating Skill-Transfer in terms of Mutual Information and using Policy Gradient methods.",
+      "best_matching_reviewer": "reviewer_2",
+      "best_match_score": 0.3567,
+      "matched_reference_strength": "1. The key research questions are well-motivated.\n2. The theoretical analysis of existing approaches, which shows the connection to mutual information, provides new insights.\n3. The proposed solution is reasonable.\n4. The paper is generally well-written."
+    },
+    {
+      "generated_strength": "Novel algorithm (JEM) designed to address the identified problem.",
+      "best_matching_reviewer": "reviewer_4",
+      "best_match_score": 0.3817,
+      "matched_reference_strength": "The method seems novel and interesting, and seems to exhibit favorable experimental results over the state of the art."
+    },
+    {
+      "generated_strength": "Experimental validation in a complex game environment (Naruto Mobile).",
+      "best_matching_reviewer": "reviewer_3",
+      "best_match_score": 0.6383,
+      "matched_reference_strength": "- The paper addresses an interesting and relevant problem of learning heterogeneous behaviors for a diverse population of agents in competitive games.\n- The paper evaluates JEM on a realistic and challenging game environment, Naruto Mobile, with over 300 unique characters and complex game mechanics. The paper uses several metrics to measure the behavior similarity, competitive win rate, and outcome disparity of the agents."
+    },
+    {
+      "generated_strength": "Comprehensive evaluation metrics to assess behavior diversity, competitive performance, and outcome disparity.",
+      "best_matching_reviewer": "reviewer_3",
+      "best_match_score": 0.4126,
+      "matched_reference_strength": "- The paper addresses an interesting and relevant problem of learning heterogeneous behaviors for a diverse population of agents in competitive games.\n- The paper evaluates JEM on a realistic and challenging game environment, Naruto Mobile, with over 300 unique characters and complex game mechanics. The paper uses several metrics to measure the behavior similarity, competitive win rate, and outcome disparity of the agents."
+    },
+    {
+      "generated_strength": "Population size ablation study.",
+      "best_matching_reviewer": "reviewer_4",
+      "best_match_score": 0.0962,
+      "matched_reference_strength": "The method seems novel and interesting, and seems to exhibit favorable experimental results over the state of the art."
+    }
+  ],
+  "avg_best_strength_match": 0.3599,
+  "strength_coverage_score": 0.25,
+  "aggregate_strength_similarity": 0.6621
+}

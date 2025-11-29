@@ -1,72 +1,65 @@
 ```markdown
-# Research Paper Summary: WizardCoder: Empowering Code Large Language Models with Evol-Instruct
+# Research Paper Summary: TabRepo: A Large Scale Repository of Tabular Model Evaluations and its AutoML Applications
 
 ## 1. Problem Statement
-
-Existing Code Large Language Models (Code LLMs) are primarily pre-trained on raw code data without sufficient instruction fine-tuning, limiting their ability to handle complex code-related tasks and align with user intentions. They lag behind closed-source models.
+The paper addresses the problem of the high computational cost associated with benchmarking and ablating tabular methods, which limits thorough exploration of research directions and makes it expensive to measure the impact of techniques like ensembling. Current benchmarks, such as AutoMLBenchmark, require significant CPU hours, restricting their frequent use and hindering rapid experimentation.
 
 ## 2. Objectives
-
-The main objectives of this research are:
-
-*   To enhance the performance of open-source Code LLMs, specifically StarCoder, through complex instruction fine-tuning using a code-specific Evol-Instruct method.
-*   To outperform existing open-source Code LLMs in code generation benchmarks.
-*   To achieve comparable or superior performance to closed-source LLMs, such as Claude and Bard, despite having a smaller model size.
+The main objectives of the research are:
+*   To introduce TabRepo, a large-scale dataset of tabular model evaluations and predictions.
+*   To demonstrate how TabRepo can be used to study the performance of tuning models and ensembling at a marginal cost by leveraging precomputed model predictions.
+*   To show that TabRepo, combined with transfer learning, can achieve state-of-the-art results compared to AutoML systems in terms of accuracy and training time.
 
 ## 3. Keywords
-
-Code Large Language Models (Code LLMs), instruction fine-tuning, Evol-Instruct, code generation, StarCoder, HumanEval, HumanEval+, MBPP, DS-1000, open-source models, closed-source models.
+Tabular data, AutoML, Hyperparameter Optimization, Transfer Learning, Benchmarking, Ensembling, Model Evaluation, Predictions, Repository, Portfolio Learning.
 
 ## 4. Methodology
-
-The research methodology involves the following steps:
-
-1.  **Adapting Evol-Instruct to the Code Domain:** Refining evolutionary instructions, simplifying prompt forms, and incorporating code debugging and time-space complexity constraints.
-2.  **Generating Code Instruction Data:** Evolving the Code Alpaca dataset using the modified Evol-Instruct method to create intricate code instruction data.
-3.  **Fine-tuning StarCoder:** Fine-tuning the StarCoder model using the newly created code instruction-following training set, resulting in WizardCoder.
-4.  **Iterative Evolution and Fine-tuning:** Iteratively applying Evol-Instruct and fine-tuning, monitoring the pass@1 metric on HumanEval to determine the optimal model.
-5.  **Evaluation:** Evaluating the model on HumanEval, HumanEval+, MBPP, and DS-1000 benchmarks, comparing its performance against open-source and closed-source LLMs.
+The research methodology involves:
+*   Creating TabRepo, a dataset containing predictions and metrics for a large number of tabular models evaluated on numerous classification and regression datasets. The dataset includes models from different families (Linear Models, K-Nearest Neighbors, Random Forest, Extra Trees, XGBoost, LightGBM, CatBoost, and Multi-layer Perceptron).
+*   Evaluating models with bagging to improve accuracy and estimate hold-out performance.
+*   Comparing Hyperparameter Optimization (HPO) with ensemble against AutoML systems using precomputed evaluations and predictions.
+*   Applying transfer learning techniques, specifically portfolio learning, to leverage TabRepo for achieving state-of-the-art results.
+*   Analyzing model performance, runtime distributions, hyperparameter importance, and the impact of tuning and ensembling.
+*   Evaluating the anytime portfolio approach in a leave-one-out setting.
 
 ## 5. Results
-
-The key findings and outcomes of this research are:
-
-*   WizardCoder outperforms all other open-source Code LLMs by a substantial margin on code generation benchmarks (HumanEval, HumanEval+, MBPP, and DS-1000).
-*   WizardCoder achieves state-of-the-art (SOTA) performance among open-source Code LLMs.
-*   WizardCoder surpasses the largest closed-source LLMs, Anthropic’s Claude and Google’s Bard, in terms of pass rates on HumanEval and HumanEval+.
-*   Significant improvements in pass@1 scores were observed, with an increase of +22.3 on HumanEval and +8.2 on MBPP.
-*   Ablation studies showed that the highest pass@1 score on HumanEval was achieved after three rounds of data evolution.
+The key findings and outcomes include:
+*   TabRepo enables studying the performance of tuning models and ensembling at marginal cost.
+*   Transfer learning, using portfolio learning with TabRepo, outperforms current state-of-the-art tabular systems (e.g., AutoGluon) in accuracy, runtime, and latency.
+*   Ensembling a model family after tuning does not outperform current AutoML systems without transfer learning.
+*   Hyperparameter importance analysis reveals key hyperparameters for different model families.
+*   A portfolio combined with ensembling outperforms AutoGluon for both accuracy and latency given the same 4h fitting budget, even without stacking.
+*   Having more datasets or more configurations in offline data both improve the final performance up to a certain point with a saturating effect around 150 offline configurations or offline datasets.
+*   A portfolio of size 3 is sufficient to outperform all AutoML systems except AutoGluon, and a portfolio of size 15 is sufficient to outperform AutoGluon.
+*   The best performance is achieved with 15 iterations of ensemble selection.
 
 ## 6. Strengths
-
-The strengths of this research paper include:
-
-*   **Novel Approach:** Adapting the Evol-Instruct method specifically for the code domain.
-*   **Significant Performance Improvement:** Achieving SOTA performance and surpassing both open-source and closed-source models.
-*   **Comprehensive Evaluation:** Evaluating the model on multiple code generation benchmarks.
-*   **Detailed Methodology:** Providing a clear and detailed description of the Evol-Instruct adaptations and fine-tuning process.
-*   **Ablation Study:** Including an ablation study to analyze the impact of data evolution rounds.
+The strengths of the research paper are:
+*   Introduction of a large-scale, publicly available dataset (TabRepo) for tabular model evaluations and predictions.
+*   Comprehensive evaluation of various tabular models and AutoML systems.
+*   Demonstration of the effectiveness of transfer learning with TabRepo for achieving state-of-the-art results.
+*   Detailed analysis of model performance, hyperparameter importance, and the impact of ensembling.
+*   Rigorous experimental setup with multiple datasets and seeds.
+*   Analysis of the data needed for transfer learning to achieve strong results.
 
 ## 7. Weaknesses
-
-The weaknesses of this research paper include:
-
-*   **Limited Comparison:** Relies on scores from LLM-Humaneval-Benchmarks for closed-source models, which might not be a direct comparison.
-*   **Ethical Considerations:** The paper acknowledges the potential for generating unethical content but does not provide specific mitigation strategies.
-*   **Performance Gap:** While outperforming many models, WizardCoder still falls behind GPT4, indicating room for improvement.
+The weaknesses of the research paper are:
+*   Some models like TabPFN, FTTransformer and KNN had failures during the evaluation due to memory or implementation issues.
+*   The reliance on a specific ensembling method (Caruana ensemble selection).  Exploring other ensembling methods could potentially yield further improvements.
+*   The computational cost, while reduced compared to full benchmarking, still exists for generating the TabRepo dataset itself.
 
 ## 8. Conclusions
-
-The main takeaways and implications of this research are:
-
-*   Code-specific instruction fine-tuning, particularly with the Evol-Instruct method, can significantly enhance the performance of Code LLMs.
-*   WizardCoder demonstrates the potential for open-source models to achieve competitive or superior performance compared to closed-source models.
-*   The study highlights the importance of evolving instruction data and tailoring it to the specific characteristics of the code domain.
+The main takeaways and implications are:
+*   TabRepo provides a valuable resource for the tabular machine learning community, enabling efficient benchmarking and experimentation.
+*   Transfer learning, particularly portfolio learning with TabRepo, offers a promising approach for achieving state-of-the-art results in tabular data modeling.
+*   Ensembling and hyperparameter tuning alone are insufficient to outperform state-of-the-art AutoML systems without transfer learning.
+*   The study provides insights into hyperparameter importance and the impact of different factors on model performance.
 
 ## 9. Future Work
-
 The paper suggests the following future directions and improvements:
-
-*   Enhance the Code Evol-Instruct method to further improve the model's performance.
-*   Address the ethical and societal implications of the model, such as the generation of unethical, harmful, or misleading information.
+*   Exploring other ensembling methods beyond Caruana ensemble selection.
+*   Applying model-based or multi-fidelity approaches to generate configurations for model families.
+*   Extending TabRepo with more datasets, models, and evaluations.
+*   Analyzing the performance of different transfer learning techniques with TabRepo.
+*   Investigating the use of TabRepo for other AutoML tasks, such as meta-learning and few-shot learning.
 ```

@@ -1,6 +1,6 @@
 from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
-from tools.custom_tool import MarkdownToPdfTool
+# Removed: MarkdownToPdfTool import (not needed for eval)
 
 
 @CrewBase
@@ -9,8 +9,6 @@ class PaperReviewCrew():
 
     agents_config = 'config/agents.yaml'
     tasks_config = 'config/tasks.yaml'
-
-    # REMOVED: scraper_agent (uses pdf_path)
 
     @agent
     def summarizer_agent(self) -> Agent:
@@ -33,13 +31,7 @@ class PaperReviewCrew():
             verbose=True
         )
 
-    @agent
-    def pdf_generator_agent(self) -> Agent:
-        return Agent(
-            config=self.agents_config['pdf_generator_agent'],
-            tools=[MarkdownToPdfTool()],
-            verbose=True
-        )
+    # Removed: pdf_generator_agent (not needed for eval)
 
     @task
     def text_reader(self) -> Task:
@@ -65,11 +57,7 @@ class PaperReviewCrew():
             config=self.tasks_config['final_report_generation'],
         )
 
-    @task
-    def pdf_generation(self) -> Task:
-        return Task(
-            config=self.tasks_config['pdf_generation'],
-        )
+    # Removed: pdf_generation task (not needed for eval)
 
     @crew
     def crew(self) -> Crew:

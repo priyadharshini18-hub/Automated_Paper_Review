@@ -1,0 +1,55 @@
+```json
+{
+  "title": "Geometry-Aware Projective Mapping for Unbounded Neural Radiance Fields",
+  "authors": null,
+  "date_reviewed": "November 27, 2025",
+  "executive_summary": "This paper introduces a novel approach to rendering unbounded scenes in Neural Radiance Fields (NeRFs). The key idea is to address the limitations of existing mapping functions, which struggle to accurately represent both near and far regions, especially when camera poses are distant from the scene origin. The authors propose a geometry-aware projective mapping based on a p-norm distance and a new angular ray parameterization. This allows for adaptive sampling of rays, taking into account scene geometry and improving the synthesis of novel views in challenging unbounded scenarios.\n\nThe proposed method involves analyzing existing mapping functions using stereographic projection, designing an adaptive mapping function using the p-norm distance, and introducing an angular ray parameterization to ensure evenly-spaced intervals in the deformed embedding space. The approach is integrated into various existing NeRF frameworks, including DVGO, TensoRF, iNGP, and NeRF, and evaluated on multiple datasets. The results demonstrate state-of-the-art performance in novel view synthesis, with significant improvements in representing both near and far regions of unbounded scenes.",
+  "problem_statement": "Existing mapping functions in Neural Radiance Fields (NeRFs) fail to accurately represent unbounded scenes, particularly when camera poses are significantly away from the scene origin. These functions either work well only in object-centric scenes or focus on objects close to the camera, leading to erroneous color representations for distant objects and inaccurate 3D geometry.",
+  "research_objectives": [
+    "To provide a geometric understanding of existing mapping functions for unbounded scenes using stereographic projection.",
+    "To identify the limitations of existing mapping functions in representing both near and far regions of a scene.",
+    "To propose a novel mapping function based on a p-norm distance that adaptively samples rays based on scene geometry.",
+    "To introduce a new ray parameterization that properly allocates ray samples in the geometry of unbounded regions.",
+    "To integrate the proposed mapping function and ray parameterization within existing NeRF frameworks to improve novel view synthesis results on challenging datasets."
+  ],
+  "methodology": "The methodology consists of: 1) analyzing existing unbounded scene representations using stereographic projection to understand limitations; 2) designing an adaptive mapping function based on the p-norm distance, where the p-value is automatically set using a RANSAC framework, allowing the embedding space to deform depending on scene configurations; 3) introducing a new angular ray parameterization based on angles from the center of projection, ensuring evenly-spaced intervals in the deformed embedding space to address over- and under-sampling; and 4) incorporating the proposed mapping function and ray parameterization into existing NeRF frameworks (DVGO, TensoRF, iNGP, and NeRF) and evaluating performance on 360° object-centric and free trajectory datasets.",
+  "key_results": "The key results include achieving state-of-the-art novel view synthesis performance on challenging datasets, improving the representation of both near and far regions in unbounded scenes through the adaptive mapping function and angular ray parameterization, successfully integrating the method with existing MLP-based and voxel-based NeRF models for significant performance improvements, and demonstrating the effectiveness of the p-norm based mapping function and angular ray parameterization in addressing the limitations of conventional mapping functions, especially when camera positions are far from the scene origin. Ablation studies further confirmed the effectiveness of the proposed mapping function and ray parameterization.",
+  "metrics": [
+    {
+      "name": "PSNR",
+      "value": "Higher is better",
+      "explanation": "Peak Signal-to-Noise Ratio, measures the quality of reconstructed images compared to the original"
+    },
+    {
+      "name": "SSIM",
+      "value": "Higher is better",
+      "explanation": "Structural Similarity Index Measure, assesses the similarity between two images in terms of structural information"
+    },
+    {
+      "name": "LPIPS",
+      "value": "Lower is better",
+      "explanation": "Learned Perceptual Image Patch Similarity, measures the perceptual similarity between images based on learned features"
+    }
+  ],
+  "strengths": [
+    "Novel Approach: Introduction of a novel adaptive mapping function based on p-norm and an angular ray parameterization for unbounded NeRFs.",
+    "Geometric Understanding: Providing a clear geometric interpretation of existing mapping functions using stereographic projection.",
+    "Adaptive Sampling: The ability to adaptively sample rays based on scene geometry, improving representation in both near and far regions.",
+    "Integration with Existing Frameworks: Demonstrating the generality of the approach by integrating it with various NeRF models.",
+    "Comprehensive Evaluation: Extensive experiments on multiple datasets with quantitative and qualitative results.",
+    "Addresses a key limitation: The work directly tackles the challenge of rendering distant objects and scenes with off-center camera poses, a common issue in unbounded NeRFs."
+  ],
+  "weaknesses": [
+    "RANSAC dependency: Automatically setting a proper p value relies on the RANSAC framework.",
+    "Limited scope in limitations: The limitation section only mentions if the camera. This is unfinished and not a limitation.",
+    "Computational Cost: While not explicitly stated, the adaptive nature of the mapping function and ray parameterization may introduce additional computational overhead.",
+    "Complexity: The method involves several complex concepts (stereographic projection, p-norm, RANSAC), which might make it difficult to implement and understand for some readers."
+  ],
+  "conclusions": "The proposed p-norm-based mapping function and angular ray parameterization effectively address the rendering challenges in unbounded scenes. Adapting the mapping function to scene geometry is crucial for accurately representing both near and far regions. The method significantly improves novel view synthesis results in challenging unbounded scene scenarios.",
+  "future_work": [
+    "Exploring function designs that better optimize for scene geometry, object distribution, and the position of the scene origin.",
+    "Designing an iterative approach to determine optimal p values.",
+    "Developing a region-aware p value estimation in consideration of a variety of distributions of objects and structures in a scene."
+  ]
+}
+```

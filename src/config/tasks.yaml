@@ -103,7 +103,7 @@ final_report_generation:
     {
       "title": "Paper title",
       "authors": "Authors if available or null",
-      "date_reviewed": "November 26, 2025",
+      "date_reviewed": "November 27, 2025",
       "executive_summary": "2-3 paragraph high-level overview",
       "problem_statement": "What problem does this research address",
       "research_objectives": ["objective 1", "objective 2"],
@@ -129,13 +129,14 @@ final_report_generation:
   output_file: output/final_report.json
 
 
-pdf_generation:
-  description: >
-    Convert the final report JSON to a professionally formatted PDF document.
-    Read the JSON from output/final_report.json and create a PDF at output/paper_report.pdf.
-  expected_output: >
-    A confirmation message indicating successful PDF generation with the output path.
-  agent: pdf_generator_agent
-  context:
-    - final_report_generation
-  output_file: output/pdf_generation_log.txt
+# Commented out for eval - not generating PDFs
+# pdf_generation:
+#   description: >
+#     Convert the final report JSON to a professionally formatted PDF document.
+#     Read the JSON from output/final_report.json and create a PDF at output/paper_report.pdf.
+#   expected_output: >
+#     A confirmation message indicating successful PDF generation with the output path.
+#   agent: pdf_generator_agent
+#   context:
+#     - final_report_generation
+#   output_file: output/pdf_generation_log.txt

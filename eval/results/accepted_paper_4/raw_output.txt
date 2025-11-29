@@ -1,0 +1,50 @@
+```json
+{
+  "title": "Addressing Signal Delay in Deep Reinforcement Learning",
+  "authors": null,
+  "date_reviewed": "November 27, 2025",
+  "executive_summary": "This paper addresses the significant, yet often overlooked, problem of signal delay in deep reinforcement learning (DRL). Signal delay, defined as the lag between an agent's perception and its actions, can severely degrade the performance of standard DRL algorithms. The authors formalize the problem using Delayed-Observation Markov Decision Processes (DOMDPs) and demonstrate the limitations of existing algorithms in the face of such delays. They then introduce innovative strategies, including Delay-Reconciled Training for the critic and State Augmentation for the actor, to mitigate these challenges.\n\nThe core contribution of this work lies in developing a versatile framework that can be integrated with existing actor-critic methods to handle DOMDPs effectively. The proposed Delay-Reconciled Training leverages offline access to non-delayed data to improve critic training, while State Augmentation incorporates historical actions to provide the actor with more relevant information. The effectiveness of these methods, along with complementary techniques like prediction and encoding-based auxiliary losses, is rigorously evaluated across various MuJoCo environments. The results demonstrate significant performance improvements compared to standard DRL algorithms, especially in scenarios with fixed delays. The research highlights the critical need to address signal delay in DRL and provides a strong foundation for future work in this area.",
+  "problem_statement": "The research addresses the problem of performance degradation in deep reinforcement learning (DRL) due to signal delay, which is the lag between an agent's perception of the environment and its actions. Existing DRL algorithms and generic methods for partially observable tasks suffer greatly from these delays, hindering their applicability in real-world scenarios.",
+  "research_objectives": [
+    "Formalize delayed-observation Markov decision processes (DOMDP) by extending the standard MDP framework to incorporate signal delays.",
+    "Elucidate the challenges posed by signal delay in DRL, demonstrating the performance degradation of existing algorithms.",
+    "Propose effective strategies to overcome these challenges in continuous robotic control tasks.",
+    "Investigate the impact of delay on performance and provide empirical evidence demonstrating its significant effect through comprehensive experiments.",
+    "Provide a mathematical formulation for the delay problem, encompassing both action and observation delays, and derive theoretical insights to devise an effective solution.",
+    "Examine a range of ideas to mitigate or overcome the key challenges and provide an empirical evaluation of the effectiveness of each idea.",
+    "Suggest simple and general approaches for actor-critic architectures that effectively address the impacts of signal delay in DRL."
+  ],
+  "methodology": "The methodology involves formalizing the delayed reinforcement learning problem using Delayed-Observation Markov Decision Processes (DOMDPs). This involves extending the standard MDP framework to explicitly incorporate signal delays in both action and observation spaces. The authors then develop an algorithmic framework based on actor-critic architectures. Key components of the framework include:\n\n*   **Delay-Reconciled Training for Critic:** This technique leverages the fact that, during offline training, full observation and reward data is available after the delay is reconciled. The critic is trained using this recovered historical information to improve value function estimation.\n*   **State Augmentation for Actor:** To compensate for delayed observations, the actor's input is augmented with historical actions. This is implemented using MLP, RNN, and Transformer encoders to capture the temporal dependencies between past actions and the current state.\n*   **Complementary Techniques:** Prediction and encoding-based auxiliary losses are introduced to aid in representation learning. A prediction network is trained to estimate the true state from delayed observations and actions, while an encoding network generates hidden features that serve as input to the policy network.\n\nThe proposed methods are evaluated empirically in MuJoCo environments, comparing their performance against standard DRL algorithms (DDPG, TD3, SAC) and algorithms designed for POMDPs (RNN-based, VRM). The experiments cover various delay settings, including fixed and unfixed delays, probabilistic state transitions, and large state spaces.",
+  "key_results": "The key results of the paper are:\n\n*   Standard DRL algorithms (DDPG, TD3, SAC) exhibit a significant performance drop in the presence of signal delay.\n*   Delay-Reconciled Training for the critic consistently improves performance compared to standard SAC, demonstrating the effectiveness of using non-delayed information for critic training.\n*   State Augmentation for the actor, particularly when combined with Delay-Reconciled Training, further enhances performance, indicating the importance of incorporating historical actions.\n*   Prediction and encoding-based techniques can provide additional performance gains, especially in environments with fixed delays. However, their effectiveness diminishes in more complex environments with unfixed delays or large observation spaces.\n*   The stability of the delay significantly influences the performance of prediction and encoding-based methods. Fixed delays lead to better performance compared to unfixed delays.",
+  "metrics": [
+    {
+      "name": "Normalized Reward",
+      "value": "Percentage relative to Vanilla SAC (no delay)",
+      "explanation": "The performance of each algorithm is normalized based on the environment-specific performance of Vanilla SAC without delay. This allows for a fair comparison across different environments. Higher percentage indicates better performance."
+    },
+    {
+      "name": "Mean and Standard Error of the Mean (S.E.M)",
+      "value": "Reported alongside performance percentages",
+      "explanation": "The mean provides an average performance measure, while the S.E.M quantifies the uncertainty in the estimate of the mean. This is used to determine whether the performance differences between algorithms are statistically significant."
+    }
+  ],
+  "strengths": [
+    "Formalization of DOMDP provides a clear mathematical framework for analyzing DRL with delayed signals.",
+    "Comprehensive evaluation of various algorithms and techniques across diverse environments and delay settings.",
+    "Effective strategies, such as Delay-Reconciled Training for Critic and State Augmentation for Actor, to mitigate the impact of delays.",
+    "Theoretical justification for the proposed methods, providing insights into why they work.",
+    "The aim of a versatile framework that can be integrated with current or future algorithms to handle DOMDP problems effectively is valuable."
+  ],
+  "weaknesses": [
+    "Limited to simulated environments, which may not fully capture the complexities of real-world applications.",
+    "Focus on continuous control tasks, and the effectiveness of the proposed methods in discrete action spaces may need further investigation.",
+    "The effectiveness of prediction and encoding techniques is sensitive to the environment's complexity and the stability of the delay."
+  ],
+  "conclusions": "The research successfully formulates DRL with delay (DRLwD) and proposes effective approaches, Delay-Reconciled Training and State Augmentation, to alleviate the challenge of misalignment between observed and true states. These methods significantly improve the performance of DRL algorithms in the presence of signal delay, highlighting the importance of addressing this issue for real-world applications. The study also shows that introducing a prediction network can yield promising performance when the environment is simple, but explicit prediction or model-based methods can lead to performance decrease in scenarios where the environment is highly complex and difficult to model.",
+  "future_work": [
+    "Explore real-world scenarios and transition from simulated to real environments to validate the findings.",
+    "Investigate the effectiveness of the proposed methods in discrete action spaces to broaden their applicability.",
+    "Develop more robust prediction and encoding techniques that are less sensitive to the environment's complexity and the stability of the delay."
+  ]
+}
+```

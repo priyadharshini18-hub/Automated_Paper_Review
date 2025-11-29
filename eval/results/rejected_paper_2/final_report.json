@@ -1,0 +1,53 @@
+{
+  "title": "Network calibration under domain shift based on estimating the target domain accuracy",
+  "authors": null,
+  "date_reviewed": "November 27, 2025",
+  "executive_summary": "This paper addresses the critical problem of calibrating network confidence in unsupervised domain adaptation (UDA), where models trained on a source domain are applied to a target domain with unlabeled data. The core challenge lies in the inability to directly calibrate the adapted network on the target domain due to the absence of labels. The authors introduce a novel calibration procedure, UTDC, that estimates the network's accuracy on the target domain and minimizes the disparity between this estimated accuracy and the computed confidence. This approach contrasts with existing methods that rely on importance weighting (IW) and source domain data, which often overestimate target accuracy, leading to suboptimal calibration. Experimental results on standard domain adaptation benchmarks demonstrate that UTDC significantly outperforms these existing methods, establishing a new benchmark for network calibration in UDA.\n\nThe UTDC method hinges on a realistic estimation of the adapted model's accuracy on the target domain, achieved by first computing the network's accuracy on labeled source data and then modifying it to reflect the actual accuracy on the target domain. This is accomplished using an accuracy estimation technique based on dataset-level regression. The method then calibrates the prediction confidence directly in the target domain by minimizing the UDA-adaECE (Unsupervised Domain Adaptation - Adaptive Expected Calibration Error) measure. Unlike IW methods, which re-weight source data based on proximity to the target, UTDC directly computes confidence on the target data, leveraging the independence of network confidence from true labels. The authors provide a thorough analysis of the method's sensitivity to target accuracy prediction and demonstrate the limitations of the IW assumption, highlighting the importance of addressing the accuracy gap between source and target domains.\n\nThe paper includes a detailed experimental evaluation using Office-Home and Office-31 datasets, comparing UTDC against several baselines, including uncalibrated networks, source-calibrated networks (using Temperature Scaling, Vector Scaling, and Matrix Scaling), and IW-based UDA calibrators. The results consistently show that UTDC achieves significantly better calibration performance, approaching the performance of an oracle method with access to target domain labels. Further analysis demonstrates that UTDC computes calibration temperatures closer to the optimal values and exhibits tolerance for errors in target accuracy estimation. The authors conclude by emphasizing the importance of addressing the accuracy gap between source and target domains and suggest future research directions, including applications to regression, segmentation tasks, and non-parametric calibration methods.",
+  "problem_statement": "The research addresses the problem of calibrating network confidence when adapting a model trained on a source domain to a target domain using unlabeled samples. Direct calibration on the target domain is impossible due to the absence of labels. Existing methods often lead to deteriorated prediction confidence despite improved accuracy in unsupervised domain adaptation (UDA). Importance weighting (IW) methods, which rely on labeled source data, overestimate the target accuracy, leading to suboptimal calibration.",
+  "research_objectives": [
+    "Introduce a calibration procedure that relies on estimating the network's accuracy on the target domain.",
+    "Calibrate the prediction confidence directly in the target domain by minimizing the disparity between the estimated accuracy and the computed confidence.",
+    "Demonstrate that importance weighting relies on an overly optimistic estimation of the target accuracy, especially with large covariate shift.",
+    "Propose a calibration method directly applicable to the target domain data, based on a realistic estimation of the adapted model's accuracy on the target domain."
+  ],
+  "methodology": "The proposed UTDC (Unsupervised Target Domain Calibration) method involves several key steps:\n\n1.  **Accuracy Estimation:** The method starts by estimating the network's accuracy on the target domain using the approach described in (Deng & Zheng, 2021). This involves augmenting the source domain validation set Ds with various visual transformations to create n meta-datasets (D1, ..., Dn). The accuracy (a1, ..., an) of the model is computed on these datasets. Each dataset Di is represented as a Gaussian distribution with mean μi and covariance matrix Σi. The Fre´chet distance (Fi) between the Gaussian representations of Ds and Di measures the domain gap. A linear regression model (â = w · F + b) is then fitted to the data set (F1, a1), ..., (Fn, an) to predict the accuracy of the network on the unlabeled target domain data.\n\n2.  **Bin-wise Accuracy Rescaling:** The source data is divided into M equal-size bins based on confidence values, and the corresponding network accuracy (Asource,m) is computed for each bin m. Similarly, the target data is divided into M bins, and the bin-wise accuracy of the target (Âtarget,m) is estimated by rescaling the bin-wise accuracy on the source domain using the ratio of the overall estimated target accuracy (Âtarget) to the source accuracy (Asource):  Âtarget,m = Asource,m * (Âtarget / Asource).\n\n3.  **UDA-adaECE Minimization:** To calibrate the network, the UDA-adaECE (Unsupervised Domain Adaptation - Adaptive Expected Calibration Error) measure is minimized. The adaECE is defined as adaECE = (1/M) * Σ|Am - Cm|, where Am is the average accuracy and Cm is the average confidence at bin m.  The UDA-adaECE is then defined as UDA-adaECE = (1/M) * Σ|Âtarget,m - Ctarget,m|.\n\n4.  **Temperature Scaling (TS):**  Temperature Scaling is employed as a post-processing calibration technique. The temperature (T) is optimized by minimizing the UDA-adaECE measure using a grid search. The temperature scaling is expressed as pT(y=i|x) = exp(zi/T) / Σexp(zj/T), where zi are the logit values. The optimal temperature T is found by minimizing the UDA-adaECE measure on the target data.\n\n5.  **Baselines:** The method is compared to several baselines including: Uncalibrated, Source-TS, Source-VS, Source-MS, CPCS, and TransCal. An Oracle version of the approach is also used where the exact accuracy of the adapted model on the target data is used instead of estimating it.",
+  "key_results": "The experimental results demonstrate that UTDC significantly outperforms existing methods on both Office-Home and Office-31 datasets. UTDC achieves calibration performance close to an oracle method with access to target domain labels. The computed calibration temperature using UTDC variants is closer to the optimal temperature compared to baseline methods. Further analysis shows that the Importance Weighting (IW) assumption is flawed, and UTDC is more resilient to errors in target accuracy estimation.",
+  "metrics": [
+    {
+      "name": "Adaptive ECE (adaECE)",
+      "value": "Reported in Tables 2 and 3 as percentages",
+      "explanation": "Adaptive Expected Calibration Error, a measure of model calibration that calculates the expected absolute difference between the model’s accuracy and its confidence, with bin sizes adjusted to evenly distribute samples."
+    },
+    {
+      "name": "ECE",
+      "value": "Reported in Table 4 as percentages",
+      "explanation": "Expected Calibration Error, the expected absolute difference between the model’s accuracy and its confidence, calculated with uniform bin widths."
+    },
+    {
+      "name": "Negative Log-Likelihood (NLL)",
+      "value": "Reported in Table 4",
+      "explanation": "A loss function that measures the performance of a probabilistic prediction model."
+    },
+    {
+      "name": "Brier Score (BS)",
+      "value": "Reported in Table 4",
+      "explanation": "A measure of the accuracy of probabilistic predictions."
+    }
+  ],
+  "strengths": [
+    "Addresses the accuracy gap between source and target domains, which is a key limitation of existing methods.",
+    "Estimates target domain accuracy directly, avoiding over-optimistic estimations based on source domain data.",
+    "Consistently improves calibration results on the target domain across various UDA classification tasks and models.",
+    "The method is robust and resilient in estimating the target accuracy with a tolerance for error."
+  ],
+  "weaknesses": [
+    "The method relies on the accuracy estimation method which might not be perfect.",
+    "The accuracy ratio between source and target is assumed to be similar across the bins.",
+    "The study concentrates on parametric calibration methods of classification tasks under domain shift."
+  ],
+  "conclusions": "The research concludes that the accuracy difference between source and target domains is the main problem with calibration using labeled source data in UDA. Importance weighting methods fail to address this problem. The proposed method, UTDC, improves calibration results by adapting the accuracy estimation and calibrating directly on target examples.",
+  "future_work": [
+    "Applying similar strategies to domain shift problems in regression and segmentation tasks.",
+    "Extending the method to non-parametric calibration methods such as conformal prediction."
+  ]
+}

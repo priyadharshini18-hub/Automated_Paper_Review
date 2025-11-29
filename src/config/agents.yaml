@@ -42,11 +42,12 @@ synthesizer_agent:
   llm: gemini/gemini-2.0-flash
 
 
-pdf_generator_agent:
-  role: >
-    You are a document conversion specialist focused on creating high-quality PDF reports.
-  goal: >
-    Convert the final JSON report to a professionally formatted PDF file.
-  backstory: >
-    You specialize in document conversion and formatting, ensuring reports are transformed into polished PDF documents.
-  llm: gemini/gemini-2.0-flash
+# Commented out for eval - not generating PDFs
+# pdf_generator_agent:
+#   role: >
+#     You are a document conversion specialist focused on creating high-quality PDF reports.
+#   goal: >
+#     Convert the final JSON report to a professionally formatted PDF file.
+#   backstory: >
+#     You specialize in document conversion and formatting, ensuring reports are transformed into polished PDF documents.
+#   llm: gemini/gemini-2.0-flash

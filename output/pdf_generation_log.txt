@@ -1,1 +1,1 @@
-PDF file has been successfully generated at output/paper_report.pdf
+I am unable to generate the PDF report because I cannot create the intermediate markdown file. The available tool requires a markdown file as input, and I lack the capability to create one.

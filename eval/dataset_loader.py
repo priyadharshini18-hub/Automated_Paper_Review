@@ -44,15 +44,17 @@ def get_shortest_paper_indices(inputs: list, n: int = NUM_PAPERS) -> list[int]:
 def build_reference_row(
     paper_id: str,
     reviewer_comments: list,
-    weakness_key: str = 'weakness'
+    weakness_key: str = 'weakness',
+    strength_key: str = 'strengths'
 ) -> dict:
     """Build a reference row from reviewer comments."""
     row = {'id': paper_id}
     for j in range(NUM_REVIEWERS):
         content = reviewer_comments[j]['content']
         row[f'reviewer_{j+1}_comments'] = content
-        row[f'reviewer_{j+1}_summary'] = content['summary']
-        row[f'reviewer_{j+1}_weakness'] = content[weakness_key]
+        row[f'reviewer_{j+1}_summary'] = content.get('summary', '')
+        row[f'reviewer_{j+1}_weakness'] = content.get(weakness_key, '')
+        row[f'reviewer_{j+1}_strengths'] = content.get(strength_key, '')
     return row
 
 
@@ -62,7 +64,8 @@ def process_papers(
     reviewer_comments: list,
     shortest_indices: list,
     decision_type: str,
-    weakness_key: str = 'weakness'
+    weakness_key: str = 'weakness',
+    strength_key: str = 'strengths'
 ) -> pd.DataFrame:
     """Process papers and export to files."""
     df_shortest = df.iloc[shortest_indices].reset_index(drop=True)
@@ -78,7 +81,8 @@ def process_papers(
         row = build_reference_row(
             paper_id=df_shortest.at[i, 'id'],
             reviewer_comments=reviewer_comments[orig_idx],
-            weakness_key=weakness_key
+            weakness_key=weakness_key,
+            strength_key=strength_key
         )
         rows.append(row)
     
@@ -105,13 +109,13 @@ def main():
     # Process and export accepted papers
     df_accepted_ref = process_papers(
         df_accepted, inputs_accepted, comments_accepted,
-        shortest_accepted, 'accepted', weakness_key='weakness'
+        shortest_accepted, 'accepted', weakness_key='weakness', strength_key='strengths'
     )
     
     # Process and export rejected papers
     df_rejected_ref = process_papers(
         df_rejected, inputs_rejected, comments_rejected,
-        shortest_rejected, 'rejected', weakness_key='weaknesses'
+        shortest_rejected, 'rejected', weakness_key='weaknesses', strength_key='strengths'
     )
     
     # Save reference CSVs
