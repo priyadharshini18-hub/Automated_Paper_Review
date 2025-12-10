@@ -1,0 +1,350 @@
+\title{DreamGaussian: Generative Gaussian Splatting for Efficient 3D Content Creation}
+
+\begin{abstract}
+Recent advances in 3D content creation mostly leverage optimization-based 3D generation via score distillation sampling (SDS).
+Though promising results have been exhibited, these methods often suffer from slow per-sample optimization, limiting their practical usage. 
+In this paper, we propose \textbf{DreamGaussian}, 
+a novel 3D content generation framework that achieves both efficiency and quality simultaneously. 
+Our key insight is to design a generative 3D Gaussian Splatting model with companioned mesh extraction and texture refinement in UV space.
+In contrast to the occupancy pruning used in Neural Radiance Fields, we demonstrate that the progressive densification of 3D Gaussians converges significantly faster for 3D generative tasks.
+To further enhance the texture quality and facilitate downstream applications, we introduce an efficient algorithm to convert 3D Gaussians into textured meshes and apply a fine-tuning stage to refine the details.
+Extensive experiments demonstrate the superior efficiency and competitive generation quality of our proposed approach.
+Notably, DreamGaussian produces high-quality textured meshes in just 2 minutes from a single-view image, achieving approximately 10 times acceleration compared to existing methods. 
+
+\end{abstract}
+
+\section{Introduction}
+
+
+
+Automatic 3D digital content creation finds applications across various domains, including digital games, advertising, films, and the MetaVerse. 
+The core techniques, including image-to-3D and text-to-3D, offer substantial advantages by significantly reducing the need for manual labor among professional artists and empowering non-professional users to engage in 3D asset creation.
+Drawing inspiration from recent breakthroughs in 2D content generation~\citep{rombach2022high}, the field of 3D content creation has experienced rapid advancements. Recent studies in 3D creation can be classified into two principal categories: \textit{inference-only 3D native methods} and \textit{optimization-based 2D lifting methods}.
+Theoretically, 3D native methods~\citep{jun2023shap,nichol2022point,gupta20233dgen} exhibit the potential to generate 3D-consistent assets within seconds, albeit at the cost of requiring extensive training on large-scale 3D datasets. The creation of such datasets demand substantial human effort, and even with these efforts, they continue to grapple with issues related to limited diversity and realism~\citep{deitke2023objaverse,deitke2023objaversexl,wu2023omniobject3d}.
+
+On the other hand, Dreamfusion~\citep{poole2022dreamfusion} proposes Score Distillation Sampling (SDS) to address the 3D data limitation by distilling 3D geometry and appearance from powerful 2D diffusion models~\citep{saharia2022photorealistic}, which inspires the development of recent \textit{2D lifting} methods~\citep{lin2023magic3d,wang2023prolificdreamer,chen2023fantasia3d}. 
+In order to cope with the inconsistency and ambiguity caused by the SDS supervision,
+Neural Radiance Fields (NeRF)~\citep{mildenhall2020nerf} are usually adopted for their capability in modeling rich 3D information.
+Although the generation quality has been increasingly improved, these approaches are notorious for hours-long optimization time due to the costly NeRF rendering, which restricts them from being deployed to real-world applications at scale. 
+We argue that the occupancy pruning technique used to accelerate NeRF~\citep{mueller2022instant,yu_and_fridovichkeil2021plenoxels} is ineffective in generative settings when supervised by the ambiguous SDS loss as opposed to reconstruction settings.
+
+In this work, we introduce the \textit{DreamGaussian} framework, which greatly improves the 3D content generation efficiency by refining the design choices in an optimization-based pipeline.
+Photo-realistic 3D assets with explicit mesh and texture maps can be generated from a single-view image within only 2 minutes using our method.
+Our core design is to \textit{adapt 3D Gaussian Splatting~\citep{kerbl20233d} into the generative setting with companioned meshes extraction and texture refinement.}
+Compared to previous methods with the NeRF representation, which find difficulties in effectively pruning empty space, 
+our \textit{generative Gaussian splatting} significantly simplifies the optimization landscape.
+Specifically, we demonstrate the progressive densification of Gaussian splatting, which is in accordance with the optimization progress of generative settings, greatly improves the generation efficiency.
+As illustrated in Figure~\ref{fig:teaser}, our image-to-3D pipeline swiftly produces a coarse shape within seconds and converges efficiently in around $500$ steps on a single GPU.
+
+Due to the ambiguity in SDS supervision and spatial densification, the directly generated results from 3D Gaussians tend to be blurry.
+To address the issue, we identify that the texture needs to be refined explicitly, which requires delicate textured polygonal mesh extraction from the generated 3D Gaussians. 
+While this task has not been explored before, we design an efficient algorithm for mesh extraction from 3D Gaussians by local density querying. 
+Then a generative UV-space refinement stage is proposed to enhance the texture details.
+Given the observation that directly applying the latent space SDS loss as in the first stage results in over-saturated blocky artifacts on the UV map, we take the inspiration from diffusion-based image editing methods~\citep{meng2021sdedit} and perform image space supervision. 
+Compared to previous texture refinement approaches, our refinement stage achieves better fidelity while keeping high efficiency. 
+
+In summary, our contributions are:
+\begin{enumerate}
+    \item \begin{diff}We adapt 3D Gaussian splatting into generative settings for 3D content creation, significantly reducing the generation time of optimization-based 2D lifting methods.\end{diff}
+    \item We design an efficient mesh extraction algorithm from 3D Gaussians and a UV-space texture refinement stage to further enhance the generation quality. 
+    \item Extensive experiments on both Image-to-3D and Text-to-3D tasks demonstrate that our method effectively balances optimization time and generation fidelity, unlocking new possibilities for real-world deployment of 3D content generation.
+\end{enumerate}
+
+
+
+\section{Related Work}
+
+\subsection{3D Representations}
+Various 3D representations have been proposed for different 3D tasks.
+Neural Radiance Fields (NeRF)~\citep{mildenhall2020nerf} employs a volumetric rendering and has been popular for enabling 3D optimization with only 2D supervision.
+Although NeRF has become widely used in both 3D reconstruction~\citep{barron2022mipnerf360,li2023neuralangelo,chen2022mobilenerf,hedman2021snerg} and generation~\citep{poole2022dreamfusion,lin2023magic3d,Chan2022}, optimizing NeRF can be time-consuming. 
+Various attempts have been made to accelerate the training of NeRF~\citep{mueller2022instant,yu_and_fridovichkeil2021plenoxels}, but these works mostly focus on the reconstruction setting.
+The common technique of spatial pruning fails to accelerate the generation setting.
+Recently, 3D Gaussian splatting~\citep{kerbl20233d} has been proposed as an alternative 3D representation to NeRF, which has demonstrated impressive quality and speed in 3D reconstruction~\citep{luiten2023dynamic}. 
+The efficient differentiable rendering implementation and model design enables fast training without relying on spatial pruning.
+In this work, we for the first time adapt 3D Gaussian splatting into generation tasks to unlock the potential of optimization-based methods.
+\subsection{Text-to-3D Generation}
+Text-to-3D generation aims at generating 3D assets from a text prompt. 
+Recently, data-driven 2D diffusion models have achieved notable success in text-to-image generation~\citep{ho2020denoising,rombach2022high,saharia2022photorealistic}. 
+However, transferring it to 3D generation is non-trivial due to the challenge of curating large-scale 3D datasets. 
+Existing 3D native diffusion models usually work on a single object category and suffer from limited diversity~\citep{jun2023shap,nichol2022point,gupta20233dgen,lorraine2023att3d,zhang20233dshape2vecset,zheng2023locally,ntavelis2023autodecoding,chen2023single,cheng2023sdfusion,gao2022get3d}. 
+To achieve open-vocabulary 3D generation, several methods propose to lift 2D image models for 3D generation~\citep{jain2022zero,poole2022dreamfusion,wang2023score,mohammad2022clip,michel2022text2mesh}.
+Such 2D lifting methods optimize a 3D representation to achieve a high likelihood in pretrained 2D diffusion models when rendered from different viewpoints, such that both 3D consistency and realisticity can be ensured.
+Following works continue to enhance various aspects such as generation fidelity and training stability~\citep{lin2023magic3d,tsalicoglou2023textmesh,zhu2023hifa,yu2023points,li2023focaldreamer,chen2023it3d,wang2023prolificdreamer,huang2023dreamtime,metzer2022latent,chen2023fantasia3d}, and explore further applications~\citep{zhuang2023dreameditor,singer2023text,raj2023dreambooth3d}.
+However, these optimization-based 2D lifting approaches usually suffer from long per-case optimization time.
+Particularly, employing NeRF as the 3D representation leads to expensive computations during both forward and backward. 
+In this work, we choose 3D Gaussians as the differentiable 3D representation and empirically show that it has a simpler optimization landscape.
+\subsection{Image-to-3D Generation}
+Image-to-3D generation targets generating 3D assets from a reference image. 
+The problem can also be formulated as single-view 3D reconstruction~\citep{yu2021pixelnerf, trevithick2021grf,duggal2022topologically}, but such reconstruction settings usually produce blurry results due to the lack of uncertainty modeling. 
+Text-to-3D methods can also be adapted for image-to-3D generation~\citep{xu2023neurallift,tang2023make,melas2023realfusion} using image captioning models~\citep{li2022blip,li2023blip}.
+Recently, Zero-1-to-3~\citep{liu2023zero} explicitly models the camera transformation into 2D diffusion models and enable zero-shot image-conditioned novel view synthesis.
+It achieves high 3D generation quality when combined with SDS, but still suffers from long optimization time~\citep{stable-dreamfusion,qian2023magic123}. 
+One-2-3-45~\citep{liu2023one} trains a multi-view reconstruction model for acceleration at the cost of the generation quality. 
+With an efficiency-optimized framework, our work shortens the image-to-3D optimization time to 2 minutes with little sacrifice on quality.
+
+
+
+\section{Our Approach}
+
+In this section, we introduce our two-stage framework for efficient 3D content generation for both Image-to-3D and Text-to-3D tasks as illustrated in Figure~\ref{fig:network}.
+Firstly, we adapt 3D Gaussian splatting~\citep{kerbl20233d} into generation tasks for efficient initialization through SDS~\citep{poole2022dreamfusion} (Section~\ref{sec:stage1}).
+Next, we propose an algorithm to extract a textured mesh from 3D Gaussians (Section~\ref{sec:meshing}).
+This texture is then fine-tuned by differentiable rendering~\citep{Laine2020diffrast} through a UV-space refinement stage (Section~\ref{sec:stage2}) for final exportation. 
+
+\begin{figure*}[t!]
+    \centering
+    \includegraphics[width=\textwidth]{figs/framework.pdf}
+    \caption{
+    \textbf{DreamGaussian Framework}. 
+    3D Gaussians are used for efficient initialization of geometry and appearance using single-step SDS loss. 
+    We then extract a textured mesh and refine the texture image with a multi-step MSE loss.
+    }
+    \label{fig:network}
+\end{figure*}
+\subsection{Generative Gaussian Splatting}
+\label{sec:stage1}
+
+Gaussian splatting~\citep{kerbl20233d} represents 3D information with a set of 3D Gaussians. It has been proven effective in reconstruction settings~\citep{kerbl20233d,luiten2023dynamic} with high inference speed and reconstruction quality under similar modeling time with NeRF. However, its usage in a generative manner has not been explored. We identify that the 3D Gaussians can be efficient for 3D generation tasks too. 
+
+Specifically, the location of each Gaussian can be described with a center $\mathbf{x} \in \mathbb R^3$, a scaling factor $\mathbf{s} \in \mathbb R^3$, and a rotation quaternion $\mathbf{q} \in \mathbb R^4$.
+We also store an opacity value $\alpha \in \mathbb R$ and a color feature $\mathbf{c} \in \mathbb R^3$ for volumetric rendering. 
+Spherical harmonics are disabled since we only want to model simple diffuse color.
+All the above optimizable parameters is presented by ${\Theta}$, where ${\Theta}_i = \{\mathbf{x}_i, \mathbf{s}_i, \mathbf{q}_i, \alpha_i, \mathbf{c}_i\}$ is the parameter for the $i$-th Gaussian. 
+To render a set of 3D Gaussians, we need to project them onto the image plane as 2D Gaussians. 
+Volumetric rendering is then performed for each pixel in front-to-back depth order to evaluate the final color and alpha.
+In this work, we use the highly optimized renderer implementation from~\citet{kerbl20233d} to optimize ${\Theta}$.
+
+We initialize the 3D Gaussians with random positions sampled inside a sphere, with unit scaling and no rotation. 
+These 3D Gaussians are periodically densified during optimization.
+Different from the reconstruction pipeline, we start from fewer Gaussians but densify it more frequently to align with the generation progress.
+We follow the recommended practices from previous works~\citep{poole2022dreamfusion,huang2023dreamtime,lin2023magic3d} and use SDS to optimize the 3D Gaussians (\begin{diff}Please refer to Section~\ref{sec:pre} for more details on SDS loss\end{diff}). 
+At each step, we sample a random camera pose $p$ orbiting the object center, and render the RGB image $I^p_\text{RGB}$ and transparency $I^p_\text{A}$ of the current view.
+Similar to Dreamtime~\citep{huang2023dreamtime}, we decrease the timestep $t$ linearly during training, which is used to weight the random noise $\epsilon$ added to the rendered RGB image.
+Then, different 2D diffusion priors $\phi$ can be used to optimize the underlying 3D Gaussians through SDS.
+
+\noindent \textbf{Image-to-3D.}
+For the image-to-3D task, an image $\tilde I^r_\text{RGB}$ and a foreground mask $\tilde I^r_\text{A}$ are given as input.
+Zero-1-to-3 XL~\citep{liu2023zero,deitke2023objaverse} is adopted as the 2D diffusion prior.
+The SDS loss can be formulated as:
+\begin{equation}
+    \nabla_{\Theta} \mathcal{L}_\text{SDS} = \mathbb{E}_{t, p, \mathbf{\epsilon}}
+    \left[
+    w(t)
+    (\epsilon_\phi(I^p_\text{RGB}; t, \tilde I^r_\text{RGB}, \Delta p) - \epsilon) 
+    \frac {\partial I^p_\text{RGB}} {\partial {\Theta}}
+    \right]
+\end{equation}
+where $w(t)$ is a weighting function, $\epsilon_\phi(\cdot)$ is the predicted noise by the 2D diffusion prior $\phi$, and $\Delta p$ is the relative camera pose change from the reference camera $r$.
+Additionally, we optimize the reference view image $I_\text{RGB}^r$ and transparency $I_\text{A}^r$ to align with the input:
+\begin{equation}
+\label{eq:ref}
+    \mathcal{L}_\text{Ref} = \lambda_\text{RGB}||I_\text{RGB}^r - \tilde I_\text{RGB}^r||^2_2 + \lambda_\text{A}||I_\text{A}^r - \tilde I_\text{A}^r||^2_2
+\end{equation}
+where $\lambda_\text{RGB}$ and $\lambda_\text{A}$ are the weights which are linearly increased during training.
+The final loss is the weighted sum of the above three losses.
+
+\noindent \textbf{Text-to-3D.}
+The input for text-to-3D is a single text prompt.
+Following previous works, Stable-diffusion~\citep{rombach2022high} is used for the text-to-3D task.
+The SDS loss can be formulated as:
+\begin{equation}
+    \nabla_{\Theta} \mathcal{L}_\text{SDS} = \mathbb{E}_{t, p, \mathbf{\epsilon}}
+    \left[
+    w(t) (\epsilon_\phi(I^p_\text{RGB}; t, e) - \epsilon) 
+    \frac {\partial I^p_\text{RGB}} {\partial {\Theta}}
+    \right]
+\end{equation}
+where $e$ is the CLIP embeddings of the input text description.
+
+\textbf{Discussion.} We observe that \textit{the generated Gaussians often look blurry and lack details even with longer SDS training iterations}.
+This could be explained by the ambiguity of SDS loss.
+Since each optimization step may provide inconsistent 3D guidance, it's hard for the algorithm to correctly densify the under-reconstruction regions or prune over-reconstruction regions as in reconstruction.
+This observation leads us to the following mesh extraction and texture refinement designs.%explicitly extract textured meshes from the 3D Gaussians 
+\subsection{Efficient Mesh Extraction}
+\label{sec:meshing}
+Polygonal mesh is a widely used 3D representation, particularly in industrial applications.
+Many previous works~\citep{poole2022dreamfusion,lin2023magic3d,tsalicoglou2023textmesh,tang2023delicate} export the NeRF representation into a mesh-based representation for high-resolution fine-tuning.
+We also seek to convert the generated 3D Gaussians into meshes and further refine the texture.
+
+To the best of our knowledge, the polygonal mesh extraction from 3D Gaussians is still an unexplored problem.
+\textit{Since the spatial density is described by a large number of 3D Gaussians, brute-force querying of a dense 3D density grid can be slow and inefficient.}
+It's also unclear how to extract the appearance in 3D, as the color blending is only defined with projected 2D Gaussians~\citep{kerbl20233d}.
+Here, we propose an efficient algorithm to extract a textured mesh based on block-wise local density query and back-projected color.
+
+\noindent \textbf{Local Density Query.}
+To extract the mesh geometry, a dense density grid is needed to apply the Marching Cubes~\citep{lorensen1998marching} algorithm.
+An important feature of the Gaussian splatting algorithm is that over-sized Gaussians will be split or pruned during optimization.
+This is the foundation of the tile-based culling technique for efficient rasterization~\citep{kerbl20233d}.
+We also leverage this feature to perform block-wise density queries.
+
+We first divide the 3D space of $(-1, 1)^3$ into $16^3$ overlapping blocks, then cull the Gaussians whose centers are located outside each local block.
+This effectively reduces the total number of Gaussians to query in each block.
+We then query a $8^3$ dense grid inside each block, which leads to a final $128^3$ dense grid.
+For each query at grid position $\mathbf{x}$, we sum up the weighted opacity of each remained 3D Gaussian:
+\begin{equation}
+    d(\mathbf{x}) = \sum_{i} \alpha_i \exp (-\frac 1 2 (\mathbf{x} - \mathbf{x_i})^T \Sigma_i^{-1}(\mathbf{x} - \mathbf{x_i}))
+\end{equation}
+where $\Sigma_i$ is the covariance matrix built from scaling $\mathbf{s}_i$ and rotation $\mathbf{q}_i$.
+An empirical threshold is then used to extract the mesh surface through Marching Cubes.
+Decimation and remeshing~\citep{meshlab} are applied to post-process the extracted mesh to make it smoother and more compact.
+
+\noindent \textbf{Color Back-projection.}
+Since we have acquired the mesh geometry, we can back-project the rendered RGB image to the mesh surface and bake it as the texture.
+We first unwrap the mesh's UV coordinates~\citep{xatlas} (\begin{diff}detailed in Section~\ref{sec:pre}\end{diff}) and initialize an empty texture image.
+Then, we uniformly choose 8 azimuths and 3 elevations, plus the top and bottom views to render the corresponding RGB image.
+Each pixel from these RGB images can be back-projected to the texture image based on its UV coordinate.
+Following \citet{richardson2023texture}, we exclude the pixels with a small camera space z-direction normal to avoid unstable projection at mesh boundaries.
+This back-projected texture image serves as an initialization for the next texture fine-tuning stage.
+\begin{figure*}[t!]
+    \centering
+    \includegraphics[width=\textwidth]{figs/optimize.pdf}
+    \caption{
+    \textbf{Different Texture Fine-tuning Objectives}. 
+    We show that SDS loss produces artifacts for UV space texture optimization, while the proposed MSE loss avoids this.
+    }
+    \label{fig:guidance}
+\end{figure*}
+
+\subsection{UV-space Texture Refinement}
+\label{sec:stage2}
+We further use a second stage to refine the extracted coarse texture.
+Different from texture generation~\citep{richardson2023texture,chen2023text2tex,cao2023texfusion}, we hope to enhance the details given a coarse texture.
+However, fine-tuning the UV-space directly with SDS loss leads to artifacts as shown in Figure~\ref{fig:guidance}, which is also observed in previous works~\citep{liao2023tada}.
+This is due to the mipmap texture sampling technique used in differentiable rasterization~\citep{Laine2020diffrast}.
+With ambiguous guidance like SDS, the gradient propagated to each mipmap level results in over-saturated color blocks.
+Therefore, we seek more definite guidance to fine-tune a blurry texture.
+
+We draw inspiration from the image-to-image synthesis of SDEdit~\citep{meng2021sdedit} and the reconstruction settings.
+Since we already have an initialization texture, we can render a blurry image $I^p_\text{coarse}$ from an arbitrary camera view $p$.
+Then, we perturb the image with random noise and apply a multi-step denoising process $f_\phi(\cdot)$ using the 2D diffusion prior to obtaining a refined image:
+\begin{equation}
+    I^p_\text{fine} = f_\phi(I^p_\text{coarse} + \epsilon(t_\text{start}); t_\text{start}, c)
+\end{equation}
+where $\epsilon(t_\text{start})$ is a random noise at timestep $t_\text{start}$, $c$ is $\Delta p$ for image-to-3D and $e$ for text-to-3D respectively.
+The starting timestep $t_\text{start}$ is carefully chosen to limit the noise strength, so the refined image can enhance details without breaking the original content.
+This refined image is then used to optimize the texture through a pixel-wise MSE loss:
+\begin{equation}
+    \mathcal{L}_\text{MSE} = ||I^p_\text{fine} - I^p_\text{coarse}||^2_2
+\end{equation}
+For image-to-3D tasks, we still apply the reference view RGBA loss in Equation~\ref{eq:ref}.
+We find that only about 50 steps can lead to good details for most cases, while more iterations can further enhance the details of the texture.
+
+
+
+\section{Experiments}
+
+\subsection{Implementation Details}
+
+We train $500$ steps for the first stage and $50$ steps for the second stage.
+The 3D Gaussians are initialized to $0.1$ opacity and grey color inside a sphere of radius $0.5$.
+The rendering resolution is increased from $64$ to $512$ for Gaussian splatting, and randomly sampled from $128$ to $1024$ for mesh.
+The loss weights for RGB and transperency are linearly increased from $0$ to $10^4$ and $10^3$ during training.
+We sample random camera poses at a fixed radius of $2$ for image-to-3D and $2.5$ for text-to-3D, y-axis FOV of $49$ degree, with the azimuth in $[-180, 180]$ degree and elevation in $[-30, 30]$ degree.
+The background is rendered randomly as white or black for Gaussian splatting.
+For image-to-3D task, the two stages each take around 1 minute.
+We preprocess the input image by background removal~\citep{qin2020u2} and recentering of the foreground object.
+The 3D Gaussians are initialized with $5000$ random particles and densified for each $100$ steps.
+For text-to-3D task, due to the larger resolution of $512 \times 512$ used by Stable Diffusion~\citep{rombach2022high} model, each stage takes around 2 minutes to finish.
+We initialize the 3D Gaussians with $1000$ random particles and densify them for each $50$ steps.
+For mesh extraction, we use an empirical threshold of $1$ for Marching Cubes.
+All experiments are performed and measured with an NVIDIA V100 (16GB) GPU, while our method requires less than 8 GB GPU memory.
+Please check the supplementary materials for more details.
+
+\begin{figure*}[t!]
+    \centering
+    \includegraphics[width=\textwidth]{figs/comp_image.pdf}
+    \caption{
+    \textbf{Comparisons on Image-to-3D}. 
+    Our method achieves a better balance between generation speed and mesh quality on various images.
+    }
+    \label{fig:comp_image}
+\end{figure*}
+
+\begin{figure*}[t!]
+    \centering
+    \includegraphics[width=0.95\textwidth]{figs/comp_text.pdf}
+    \caption{
+    \textbf{Comparisons on Text-to-3D}. 
+    For Dreamfusion, we use the implementation from~\citet{threestudio2023} which also uses Stable-Diffusion as the 2D prior.
+    }
+    \label{fig:comp_text}
+\end{figure*}
+
+\input{tabs/quantitative}
+
+\subsection{Qualitative Comparisons}
+
+We first provide qualitative comparisons on image-to-3D in Figure~\ref{fig:comp_image}.
+We primarily compare with three baselines from both optimization-based methods~\citep{liu2023zero} and inference-only methods~\citep{liu2023one,jun2023shap}.
+For all compared methods, we export the generated models as polygonal meshes with vertex color or texture images, and render them under ambient lighting.
+In terms of generation speed, our approach exhibits a noteworthy acceleration compared to other optimization-based methods.
+Regarding the quality of generated models, our method outperforms inference-only methods especially with respect to the fidelity of 3D geometry and visual appearance.
+In general, our method achieves a better balance between generation quality and speed, reaching comparable quality as optimization-based methods while only marginally slower than inference-only methods.
+In Figure~\ref{fig:comp_text}, we compare the results on text-to-3D.
+Consistent with our findings in image-to-3D tasks, our method achieves better quality than inference-based methods and faster speed than other optimization-based methods.
+Furthermore, we highlight the quality of our exported meshes in Figure~\ref{fig:mesh_quality}.
+These meshes exhibit uniform triangulation, smooth surface normals, and clear texture images, rendering them well-suited for seamless integration into downstream applications. 
+For instance, leveraging software such as Blender~\citep{blender}, we can readily employ these meshes for rigging and animation purposes.
+\subsection{Quantitative Comparisons}
+
+In Table~\ref{tab:quant}, we report the CLIP-similarity~\citep{radford2021learning,qian2023magic123,liu2023one} and average generation time of different image-to-3D methods on a collection of images from previous works~\citep{melas2023realfusion,liu2023one,tang2023make} and Internet.
+We also conduct an user study on the generation quality detailed in Table~\ref{tab:userstudy}.
+This study centers on the assessment of reference view consistency and overall generation quality, which are two critical aspects in the context of image-to-3D tasks.
+Our two-stage results achieve better view consistency and generation quality compared to inference-only methods. 
+Although our mesh quality falls slightly behind that of other optimization-based methods, we reach a significant acceleration of over 10 times.
+
+\begin{figure*}[t!]
+    \centering
+    \includegraphics[width=0.98\textwidth]{figs/mesh_quality.pdf}
+    \caption{
+    \textbf{Mesh Exportation}. 
+    We export high quality textured mesh from 3D Gaussians, which can be seamlessly used in downstream applications like rigged animation.
+    }
+    \label{fig:mesh_quality}
+\end{figure*}
+\begin{figure*}[t!]
+    \centering
+    \includegraphics[width=0.98\textwidth]{figs/ablation.pdf}
+    \caption{
+    \textbf{Ablation Study}. 
+    We ablate the design choices in stage 1 training.
+    }
+    \label{fig:ablation}
+\end{figure*}
+
+\input{tabs/userstudy}
+
+\subsection{Ablation Study}
+
+We carry out ablation studies on the design of our methods in Figure~\ref{fig:ablation}.
+We are mainly interested in the generative Gaussian splatting training, given that mesh fine-tuning has been well explored in previous methods~\citep{tang2023delicate,lin2023magic3d}.
+Specifically, we perform ablation on three aspects of our method:
+\textbf{1)} Periodical densification of 3D Gaussians.
+\textbf{2)} Linear annealing of timestep $t$ for SDS loss.
+\textbf{3)} Effect of the reference view loss $\mathcal L_\text{Ref}$.
+Our findings reveal that omission of any design elements results in a degradation of the generated model quality.
+Specifically, the final Gaussians exhibit increased blurriness and inaccuracies, which further affects the second fine-tuning stage.
+
+
+
+\section{Limitations and Conclusion}
+
+In this work, we present DreamGausssion, a 3D content generation framework that significantly improves the efficiency of 3D content creation. We design an efficient generative Gaussian splatting pipeline, and propose a mesh extraction algorithm from Gaussians. With our texture fine-tuning stage, we can produce ready-to-use 3D assets with high-quality polygonal meshes from either a single image or text description within a few minutes. 
+
+\textbf{Limitations.} 
+\begin{diff}
+We share common problems with previous works: Multi-face Janus problem, over-saturated texture, and baked lighting. 
+It's promising to address these problems with recent advances in score debiasing~\citep{armandpour2023re,hong2023debiasing}, camera-conditioned 2D diffusion models~\citep{shi2023mvdream,liu2023syncdreamer,zhao2023efficientdreamer,li2023sweetdreamer}, and BRDF auto-encoder~\citep{xu2023matlaber}. 
+\end{diff}
+Besides, the back-view texture generated in our image-to-3D results may look blurry, which can be alleviated with longer stage 2 training.
+
+
+\subsubsection*{Ethics Statement}
+
+We share common ethical concerns to other 3D generative models. 
+Our optimization-based 2D lifting approach relies on 2D diffusion prior models~\citep{liu2023zero,rombach2022high}, which may introduce unintended biases due to training data. 
+Additionally, our method enhances the automation of 3D asset creation, potentially impacting 3D creative professionals, yet it also enhances workflow efficiency and widens access to 3D creative work.
+
+
+

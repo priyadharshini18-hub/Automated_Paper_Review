@@ -1,8 +1,6 @@
 from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
-from crewai.agents.agent_builder.base_agent import BaseAgent
-from typing import List
-from src.tools.custom_tool import PdfToTextTool, MarkdownToPdfTool
+# Removed: MarkdownToPdfTool import (not needed for eval)
 
 
 @CrewBase
@@ -11,15 +9,6 @@ class PaperReviewCrew():
 
     agents_config = 'config/agents.yaml'
     tasks_config = 'config/tasks.yaml'
-
-
-    @agent
-    def scrapper_agent(self) -> Agent:
-        return Agent(
-            config=self.agents_config['scrapper_agent'],
-            tools=[PdfToTextTool()],  # Add tool instance here
-            verbose=True
-        )
 
     @agent
     def summarizer_agent(self) -> Agent:
@@ -42,18 +31,12 @@ class PaperReviewCrew():
             verbose=True
         )
 
-    @agent
-    def pdf_generator_agent(self) -> Agent:
-        return Agent(
-            config=self.agents_config['pdf_generator_agent'],
-            tools=[MarkdownToPdfTool()],
-            verbose=True
-        )
+    # Removed: pdf_generator_agent (not needed for eval)
 
     @task
-    def text_extractor(self) -> Task:
+    def text_reader(self) -> Task:
         return Task(
-            config=self.tasks_config['text_extractor'],
+            config=self.tasks_config['text_reader'],
         )
 
     @task
@@ -74,16 +57,11 @@ class PaperReviewCrew():
             config=self.tasks_config['final_report_generation'],
         )
 
-    @task
-    def pdf_generation(self) -> Task:
-        return Task(
-            config=self.tasks_config['pdf_generation'],
-        )
+    # Removed: pdf_generation task (not needed for eval)
 
     @crew
     def crew(self) -> Crew:
-        """Creates the Deep Researcher crew"""
-
+        """Creates the Paper Review crew"""
         return Crew(
             agents=self.agents,
             tasks=self.tasks,

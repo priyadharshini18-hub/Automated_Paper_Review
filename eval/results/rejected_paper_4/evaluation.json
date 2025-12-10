@@ -1,0 +1,137 @@
+{
+  "paper_id": "rejected_paper_4",
+  "paper_file": "input/rejected_paper_4.txt",
+  "paper_type": "rejected",
+  "executive_summary": "This paper introduces AutoBIND, a novel framework for multimodal contrastive learning that addresses limitations in existing architectures. AutoBIND can generalize to an arbitrary number of modalities, is robust to missing modalities, and doesn't require manual construction. The framework uses a graph-based approach to automatically select correlated modalities and employs a contrastive loss for representation learning. The graph structure dynamically adapts during training, improving as the contrastive loss is minimized. \n\nAutoBIND was evaluated on Alzheimer's disease detection and house price prediction tasks using diverse modalities like 2D/3D images and tabular data. Results demonstrate that AutoBIND outperforms existing methods and is task-agnostic, adaptable, and resilient to missing data. The framework also provides interpretability through graph visualizations, offering insights into modality correlations. The authors propose future work to explore alternative graph structures, new modalities, and address scalability limitations.",
+  "generated_weaknesses": [
+    "Limited availability of datasets with correlated modalities for robust validation.",
+    "The O(n^2) complexity of the graph construction algorithm limits scalability to an extensive array of modalities."
+  ],
+  "generated_strengths": [
+    "Generalizable to an arbitrary number of modalities.",
+    "Robust to missing modalities due to dynamic graph structure adaptation.",
+    "Adaptable to different datasets and encoders.",
+    "Task-agnostic.",
+    "Provides interpretability through graph visualization.",
+    "Outperforms existing methods on various datasets.",
+    "Demonstrates the effectiveness of multimodal contrastive learning.",
+    "Reduces inference time through modality pruning."
+  ],
+  "reviewer_similarities": [
+    {
+      "reviewer_id": "reviewer_1",
+      "reference_summary": "This paper proposes AutoBIND, a new multimodal contrastive learning framework that can learn representations from any number of modalities without needing hand-crafted architectures. AutoBIND uses a graph-based approach to automatically select the most correlated modalities for contrastive learning. This allows it to be robust to missing modalities, as the graph structure is dynamically updated during training. Experiments across diverse datasets and modalities demonstrate AutoBIND's ability to generalize and superior performance compared with previous approaches.",
+      "summary_similarity": 0.8641,
+      "reference_weakness": "1. The overall methodology is a simple application contrastive learning to multiple modalities. It is not clear why it outperforms previous approaches. Is it due to the additional modalities or due to one or several components in the proposed method? \n\n2. The MMST is constructed in every epoch (and also pruned)? If so, will this process converge to a stable tree and how does the final tree depend on the initial encoding quality (which determine the initial tree). \n\n3. The paper has the word \"optimal\" in the title, but there is no discussion or proof on the optimality. \n\n4. Eq (3) is not explained clearly. Is it a theorem?",
+      "weakness_similarity": 0.3427,
+      "reference_strength": "1. The paper proposes a reasonable solution to an important problem. \n\n2. The experimental results demonstrated satisfactory performance in a number of mixed-modality problem settings. \n\n3. Visualization and interpretation of the graph structure formed during the learning are interesting.",
+      "strength_similarity": 0.6249
+    },
+    {
+      "reviewer_id": "reviewer_2",
+      "reference_summary": "This paper proposes a method to learn multimodal representation using a graph representation. The target representation is per modality, i.e. each modality should yield a separate vector of a fixed size (=128). Each node in the graph represents a separate modality. A graph is constructed in an order to maximize the correlations between modalities iteratively. The method was evaluated on two multimodal datasets for prediction tasks.",
+      "summary_similarity": 0.6279,
+      "reference_weakness": "Technical descriptions are very unclear. Mathematical formalization is inconsistent and doesn't make sense. The algorithm description is incomplete. I think I can still guess what the paper tries to do, but not because the presentation is good, but because the method is extremely simple. \n\nAt high level, there is no proof or evaluation showing that this method is \"optimal\" or \"generalizable\". There is no proof that the proposed algorithm can optimize the global objective (eq 1). \n\nEq (1) is the global objective by choosing optimal {f_i}. z_i is instance Z_i should be the set. In the first equation in Sec 2.1 (doesn't have a numbering), the papers uses dot product/norms of set (Z). This must be z_i. But then w_ij should be defined in the whole set, so probably needs summation. \n\nThe next paragraph introduces d_ij, which is just 1/Sim(). There is no point of defining this term because this term never appears in the rest of the paper. \n\nEq (2) and (3) make no sense. First, i and j now represent sets, not instances. Eq (2) is only valid when the inputs are two different modalities. Eq (3) is passing same modality in each of the loss terms. \n\nAlgorithm 1 also uses in consistent and undefined terms like \"correlation factor\" \"get_embedding\". How do you train the contrastive model on modality pair? It's never explained, although I guess it's probably done using eq (2). \n\nThe evaluation is another (bigger) limitation of the current paper. This paper seeks to learn a \"unimodal\" representation that can be learned from multimodal sources. This representation takes one modality as an input and produces a representation of fixed size. This can be useful in many situations, like when there is only one modality present per instance at test time. This paper doesn't consider any situation like this in evaluation. Instead, it uses all the modalities and concatenates all the representations to get a *joint* representation. And of course, this leads to a better prediction performance than using a single modality, but this is pointless. Maybe Table 3 tried to evaluate the model when each modality is separately used. But Table 3 is never referred in the main body and there is not much explanation. More importantly, if Table 3 was indeed from the proposed method, this needs to be compared with some references (which learn multimodal representation like this paper). Currently this table delivers no information. \n\nThere is an arbitrary step of pruning nodes, but there's no ablation study showing its impact. So I assume that the authors needed to do this just to improve the performance. It was argued that the current method is robust against missing variables, but again there was no experiment designed to verify. \n\nOverall, I think the current paper needs a lot more improvement before it can be published.",
+      "weakness_similarity": 0.2264,
+      "reference_strength": "A graph construction method was used and the resulting graph may be used to understand the internal correlation of data.\nThe proposed method is very simple to implement.",
+      "strength_similarity": 0.2441
+    },
+    {
+      "reviewer_id": "reviewer_3",
+      "reference_summary": "This paper proposes a method name AutoBIND, which construct a graph on different modalities and dynamically update the graphs using a minimum spanning tree algorithm. This paper evaluates AutoBIND on a wide variety of datasets and show that AutoBIND outperforms previous methods.",
+      "summary_similarity": 0.5084,
+      "reference_weakness": "1. In section 2.1, the definition of \\(d_{ij}\\) appears problematic. How is the value determined when the cosine similarity \\(Sim(Z_i, Z_j)\\) is zero? Moreover, when \\(Sim(Z_i, Z_j)\\) approaches 0, \\(d_{ij}\\) can become extremely large (if positive) or extremely small (if negative). This definition seems to be flawed at a fundamental level.\n2. What is the specific definitions of correlated and uncorrelated modalities?\n3. The symbol system is a mess. i,j are modality indices in equation 1 but are sets in equation 3, making this paper is hard to understand. \n4. Overall, the paper lacks a clear structure and appears to be written informally.",
+      "weakness_similarity": 0.2462,
+      "reference_strength": "1. This paper Introduces AutoBIND, a novel framework that efficiently handles multiple modalities and is robust to missing modalities through a dynamic graph-based approach. Utilizing graphs to learn multimodal representations is reasonable, as this structured data can effectively model the relationships between different modalities.\n2. Extensive Experiments across various datasets demonstrate AutoBIND's effectiveness in multimodal contrastive learning tasks.",
+      "strength_similarity": 0.8338
+    },
+    {
+      "reviewer_id": "reviewer_4",
+      "reference_summary": "The paper introduces AutoBIND, a contrastive learning framework that can learn representations from an arbitrary number of modalities. \nThis approach leverages data from heterogeneous sources such as images and text and is able to deal with missing modalities as it can dynamically update the graph structure during training. \nAutoBIND uses a graph-based approach to automatically select the most correlated modalities from fully connected graph/MST and a contrastive loss to learn the representations. \nThe method is evaluated on Alzheimer's disease detection and house price prediction with 3D images, 2D images, and table modalities and outperforms existing baselines.",
+      "summary_similarity": 0.9073,
+      "reference_weakness": "(1) Although the paper claims to bind multimodalities, in practice, it deals with only three modalities (image, text, tabular) and their corresponding features (various columns in the data). Such a number of modalities is relatively common in multimodal learning, unlike current works that learn from up to five modalities that contain image, video, text, audio, and IMU.\n(2) The modalities claimed in the current setting are more like different features in the same modalities (bedroom, bathroom, etc ...). Hence, the missing modality setting is more like missing features, which is a relatively explored problem. \n(3) It will be better to include the \nImageBIND method as the baseline in Table 1, to confirm if it is the proposed method or the use of MM features that achieve performance improvement.\n(4) Due to the loss design including all pairs of combination (or MST edges), it will be better to include a more rigorous run-time analysis (how the method scales in adding more modalities), computation resource used, and parameter used. It is very likely that the performance gain was from more parameters in the encoder.\n\nSome typos\nAlzhiemer's should be Alzheimer's in the title  \n4.2.1",
+      "weakness_similarity": 0.2994,
+      "reference_strength": "The paper motivates well by tackling one of the most important problems in multimodality learning, which is dealing with a numerous number of modalities and missing modalities.\nThe author proposes a simple yet effective method for extending the ImageBind pairwise contrastive learning with graph learning to learn the relation between the modalities. Results demonstrate decent results in the two downstream datasets, showing the effectiveness and interpretability of the method.",
+      "strength_similarity": 0.8116
+    }
+  ],
+  "avg_summary_similarity": 0.7269,
+  "max_summary_similarity": 0.9073,
+  "min_summary_similarity": 0.5084,
+  "avg_weakness_similarity": 0.2787,
+  "max_weakness_similarity": 0.3427,
+  "min_weakness_similarity": 0.2264,
+  "per_weakness_matches": [
+    {
+      "generated_weakness": "Limited availability of datasets with correlated modalities for robust validation.",
+      "best_matching_reviewer": "reviewer_4",
+      "best_match_score": 0.3238,
+      "matched_reference_weakness": "(1) Although the paper claims to bind multimodalities, in practice, it deals with only three modalities (image, text, tabular) and their corresponding features (various columns in the data). Such a number of modalities is relatively common in multimodal learning, unlike current works that learn from up to five modalities that contain image, video, text, audio, and IMU.\n(2) The modalities claimed in the current setting are more like different features in the same modalities (bedroom, bathroom, etc ...). Hence, the missing modality setting is more like missing features, which is a relatively explored problem. \n(3) It will be better to include the \nImageBIND method as the baseline in Table 1, to confirm if it is the proposed method or the use of MM features that achieve performance improvement.\n(4) Due to the loss design including all pairs of combination (or MST edges), it will be better to include a more rigorous run-time analysis (how the method scales in adding more modalities), computation resource used, and parameter used. It is very likely that the performance gain was from more parameters in the encoder.\n\nSome typos\nAlzhiemer's should be Alzheimer's in the title  \n4.2.1"
+    },
+    {
+      "generated_weakness": "The O(n^2) complexity of the graph construction algorithm limits scalability to an extensive array of modalities.",
+      "best_matching_reviewer": "reviewer_1",
+      "best_match_score": 0.3296,
+      "matched_reference_weakness": "1. The overall methodology is a simple application contrastive learning to multiple modalities. It is not clear why it outperforms previous approaches. Is it due to the additional modalities or due to one or several components in the proposed method? \n\n2. The MMST is constructed in every epoch (and also pruned)? If so, will this process converge to a stable tree and how does the final tree depend on the initial encoding quality (which determine the initial tree). \n\n3. The paper has the word \"optimal\" in the title, but there is no discussion or proof on the optimality. \n\n4. Eq (3) is not explained clearly. Is it a theorem?"
+    }
+  ],
+  "avg_best_weakness_match": 0.3267,
+  "weakness_coverage_score": 0.0,
+  "aggregate_weakness_similarity": 0.3207,
+  "avg_strength_similarity": 0.6286,
+  "max_strength_similarity": 0.8338,
+  "min_strength_similarity": 0.2441,
+  "per_strength_matches": [
+    {
+      "generated_strength": "Generalizable to an arbitrary number of modalities.",
+      "best_matching_reviewer": "reviewer_3",
+      "best_match_score": 0.3104,
+      "matched_reference_strength": "1. This paper Introduces AutoBIND, a novel framework that efficiently handles multiple modalities and is robust to missing modalities through a dynamic graph-based approach. Utilizing graphs to learn multimodal representations is reasonable, as this structured data can effectively model the relationships between different modalities.\n2. Extensive Experiments across various datasets demonstrate AutoBIND's effectiveness in multimodal contrastive learning tasks."
+    },
+    {
+      "generated_strength": "Robust to missing modalities due to dynamic graph structure adaptation.",
+      "best_matching_reviewer": "reviewer_3",
+      "best_match_score": 0.5439,
+      "matched_reference_strength": "1. This paper Introduces AutoBIND, a novel framework that efficiently handles multiple modalities and is robust to missing modalities through a dynamic graph-based approach. Utilizing graphs to learn multimodal representations is reasonable, as this structured data can effectively model the relationships between different modalities.\n2. Extensive Experiments across various datasets demonstrate AutoBIND's effectiveness in multimodal contrastive learning tasks."
+    },
+    {
+      "generated_strength": "Adaptable to different datasets and encoders.",
+      "best_matching_reviewer": "reviewer_3",
+      "best_match_score": 0.3999,
+      "matched_reference_strength": "1. This paper Introduces AutoBIND, a novel framework that efficiently handles multiple modalities and is robust to missing modalities through a dynamic graph-based approach. Utilizing graphs to learn multimodal representations is reasonable, as this structured data can effectively model the relationships between different modalities.\n2. Extensive Experiments across various datasets demonstrate AutoBIND's effectiveness in multimodal contrastive learning tasks."
+    },
+    {
+      "generated_strength": "Task-agnostic.",
+      "best_matching_reviewer": "reviewer_1",
+      "best_match_score": 0.1435,
+      "matched_reference_strength": "1. The paper proposes a reasonable solution to an important problem. \n\n2. The experimental results demonstrated satisfactory performance in a number of mixed-modality problem settings. \n\n3. Visualization and interpretation of the graph structure formed during the learning are interesting."
+    },
+    {
+      "generated_strength": "Provides interpretability through graph visualization.",
+      "best_matching_reviewer": "reviewer_2",
+      "best_match_score": 0.4684,
+      "matched_reference_strength": "A graph construction method was used and the resulting graph may be used to understand the internal correlation of data.\nThe proposed method is very simple to implement."
+    },
+    {
+      "generated_strength": "Outperforms existing methods on various datasets.",
+      "best_matching_reviewer": "reviewer_3",
+      "best_match_score": 0.3038,
+      "matched_reference_strength": "1. This paper Introduces AutoBIND, a novel framework that efficiently handles multiple modalities and is robust to missing modalities through a dynamic graph-based approach. Utilizing graphs to learn multimodal representations is reasonable, as this structured data can effectively model the relationships between different modalities.\n2. Extensive Experiments across various datasets demonstrate AutoBIND's effectiveness in multimodal contrastive learning tasks."
+    },
+    {
+      "generated_strength": "Demonstrates the effectiveness of multimodal contrastive learning.",
+      "best_matching_reviewer": "reviewer_4",
+      "best_match_score": 0.6528,
+      "matched_reference_strength": "The paper motivates well by tackling one of the most important problems in multimodality learning, which is dealing with a numerous number of modalities and missing modalities.\nThe author proposes a simple yet effective method for extending the ImageBind pairwise contrastive learning with graph learning to learn the relation between the modalities. Results demonstrate decent results in the two downstream datasets, showing the effectiveness and interpretability of the method."
+    },
+    {
+      "generated_strength": "Reduces inference time through modality pruning.",
+      "best_matching_reviewer": "reviewer_1",
+      "best_match_score": 0.4245,
+      "matched_reference_strength": "1. The paper proposes a reasonable solution to an important problem. \n\n2. The experimental results demonstrated satisfactory performance in a number of mixed-modality problem settings. \n\n3. Visualization and interpretation of the graph structure formed during the learning are interesting."
+    }
+  ],
+  "avg_best_strength_match": 0.4059,
+  "strength_coverage_score": 0.75,
+  "aggregate_strength_similarity": 0.819
+}

@@ -1,0 +1,52 @@
+[
+  {
+    "success": true,
+    "paper_name": "accepted_paper_1",
+    "output_dir": "/Users/junwonchoi/Desktop/UC Davis Courses/Fall 2025/ECS 289G/Automated_Paper_Review/eval/results/accepted_paper_1"
+  },
+  {
+    "success": true,
+    "paper_name": "accepted_paper_2",
+    "output_dir": "/Users/junwonchoi/Desktop/UC Davis Courses/Fall 2025/ECS 289G/Automated_Paper_Review/eval/results/accepted_paper_2"
+  },
+  {
+    "success": true,
+    "paper_name": "accepted_paper_3",
+    "output_dir": "/Users/junwonchoi/Desktop/UC Davis Courses/Fall 2025/ECS 289G/Automated_Paper_Review/eval/results/accepted_paper_3"
+  },
+  {
+    "success": true,
+    "paper_name": "accepted_paper_4",
+    "output_dir": "/Users/junwonchoi/Desktop/UC Davis Courses/Fall 2025/ECS 289G/Automated_Paper_Review/eval/results/accepted_paper_4"
+  },
+  {
+    "success": true,
+    "paper_name": "accepted_paper_5",
+    "output_dir": "/Users/junwonchoi/Desktop/UC Davis Courses/Fall 2025/ECS 289G/Automated_Paper_Review/eval/results/accepted_paper_5"
+  },
+  {
+    "success": true,
+    "paper_name": "rejected_paper_1",
+    "output_dir": "/Users/junwonchoi/Desktop/UC Davis Courses/Fall 2025/ECS 289G/Automated_Paper_Review/eval/results/rejected_paper_1"
+  },
+  {
+    "success": true,
+    "paper_name": "rejected_paper_2",
+    "output_dir": "/Users/junwonchoi/Desktop/UC Davis Courses/Fall 2025/ECS 289G/Automated_Paper_Review/eval/results/rejected_paper_2"
+  },
+  {
+    "success": true,
+    "paper_name": "rejected_paper_3",
+    "output_dir": "/Users/junwonchoi/Desktop/UC Davis Courses/Fall 2025/ECS 289G/Automated_Paper_Review/eval/results/rejected_paper_3"
+  },
+  {
+    "success": true,
+    "paper_name": "rejected_paper_4",
+    "output_dir": "/Users/junwonchoi/Desktop/UC Davis Courses/Fall 2025/ECS 289G/Automated_Paper_Review/eval/results/rejected_paper_4"
+  },
+  {
+    "success": true,
+    "paper_name": "rejected_paper_5",
+    "output_dir": "/Users/junwonchoi/Desktop/UC Davis Courses/Fall 2025/ECS 289G/Automated_Paper_Review/eval/results/rejected_paper_5"
+  }
+]

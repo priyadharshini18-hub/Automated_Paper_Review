@@ -1,0 +1,137 @@
+{
+  "paper_id": "accepted_paper_3",
+  "paper_file": "input/accepted_paper_3.txt",
+  "paper_type": "accepted",
+  "executive_summary": "This paper investigates the discrepancies in how neural networks generalize when trained on natural versus medical images. It addresses the gap in understanding why generalization scaling laws, particularly concerning intrinsic dimension, differ significantly between these domains. The authors introduce the concept of 'label sharpness' (KF) as a key factor contributing to these differences, proposing that medical datasets typically exhibit higher label sharpness, leading to faster error scaling. They also demonstrate that label sharpness is negatively correlated with adversarial robustness, making models trained on medical images more vulnerable to attacks. Finally, the paper extends the analysis to the intrinsic dimension of learned representations, establishing its relationship with the dataset's intrinsic dimension.",
+  "generated_weaknesses": [
+    "Simplified Assumptions: The model assumes a constant intrinsic dimension throughout the dataset's manifold.",
+    "Limited Scope of Adversarial Attacks: The study focuses primarily on FGSM attacks.",
+    "Potential Confounding Factors: The authors acknowledge that other factors besides label sharpness may contribute to the observed differences in generalization behavior.",
+    "Estimation limitations: The estimation of intrinsic dimension and label sharpness are approximations.",
+    "Lack of generalizability: The study focuses on radiology images, which may limit the generalizability to other medical imaging modalities."
+  ],
+  "generated_strengths": [
+    "Novelty: Introduction of the label sharpness ($\\KF$) metric and its incorporation into generalization scaling laws.",
+    "Theoretical Foundation: Strong theoretical grounding for the derived scaling laws and relationships.",
+    "Comprehensive Evaluation: Extensive experiments across multiple models, datasets, and training set sizes.",
+    "Practical Relevance: Insights into the challenges of applying deep learning models to medical imaging and the importance of considering intrinsic dataset properties.",
+    "Clear Presentation: Well-structured and clearly written, with detailed explanations of the methodology and results."
+  ],
+  "reviewer_similarities": [
+    {
+      "reviewer_id": "reviewer_1",
+      "reference_summary": "The paper hypothesizes about and investigates the reason behind generalization challenges in medical imaging domain. The intrinsic dimension of data is known to affect the generalization error; however, the strength of this relationship seems to depend on the data being from medical or natural imaging domains. This may hint to a missing component in the known scaling laws; the authors propose and empirically validate a scaling law where the discrepancy between these domains can be partially explained by the difference in their \u201clabel sharpness\u201d. Furthermore, the authors connect the label sharpness to adversarial robustness.",
+      "summary_similarity": 0.854,
+      "reference_weakness": " - The proposed scaling law and the effect of label sharpness is only (partially) verified in two domains. I suggest adding other domains or datasets that have different label sharpness values. Specifically, the current analysis is limited to natural and medical imaging, and it is unclear if the observed trends hold for other types of data, such as satellite imagery or microscopy data, which might exhibit different characteristics in terms of label noise and image complexity. \n- The empirical results for the adversarial examples are not convincing enough, specially if we only consider the datasets within a single domain. Also the relationship between test set loss penalty vs label sharpness varies wildly based on the model used. This makes it harder for the reader to understand the message of section 6. The lack of consistent correlation between label sharpness and adversarial vulnerability within each domain raises questions about the robustness of the proposed link. The observed variability across models further complicates the interpretation, suggesting that model architecture might be a confounding factor that needs to be addressed more explicitly. The analysis should also consider different types of adversarial attacks, beyond FGSM, to ensure that the observed trends are not specific to one particular attack method.\n- The theoretical and empirical results may have limited practical uses. Adding some results on use cases such as determining the minimum number of annotations (as mentioned in Discussion) can further strengthen the paper. The current results are primarily focused on theoretical analysis and empirical validation of the proposed scaling law, but they lack a clear demonstration of how this framework can be applied to solve practical problems in medical imaging. For example, it would be beneficial to show how the proposed framework can be used to guide the selection of appropriate training set sizes or to predict the expected performance of a model on a new dataset.",
+      "weakness_similarity": 0.737,
+      "reference_strength": "- The paper addresses an important knowledge gap in understanding generalization error of medical imaging domain. \n- The proposed scaling law is investigated both theoretically and empirically on a wide range of models. \n- The paper is clearly written and relatively easy to follow.",
+      "strength_similarity": 0.6346
+    },
+    {
+      "reviewer_id": "reviewer_2",
+      "reference_summary": "The paper discusses the generalization discrepancies of deep neural networks between natural image datasets and medical image classification datasets. In particular, the authors derive a scaling law between the intrinsic dimension $d_\\text{data}$ and its label sharpness $K_\\mathcal{F}$ (describing how similar image pairs may be while still having different labels). They also derive a second scaling law between adversarial robustness of trained classifiers on a dataset and its label sharpness. The authors perform experiments using 4 natural image datasets and 7 medical imaging datasets and -to some extent- validate their laws empricially.",
+      "summary_similarity": 0.8799,
+      "reference_weakness": "1. **Image size** All datasets are resized to $HW=224\\times224$. While this is a natural choice for natural image datasets, no practitioner would classify cancer or other abnormalities on such small images. However, the nearest-neighbor distance is dependent on $d_\\text{data}$ and $d_\\text{data}$ itself should also be dependent on $HW$. Couldn't this effect be the major explanation for the generalization error discrepancy we observe on real-world medical image data (also influencing $K_\\mathcal{F}$)? The authors only investigate the effect of much smaller resolutions ($32\\times32$ px) in the Supplementary. This analysis is insufficient, as such small resolutions are unlikely to be useful for medical imaging, and it is doubtful that one could achieve above random accuracy on such small images. The dependence of $d_\\text{repr}$ on image size also needs to be considered, as this could be a confounding factor.\n\n3. **Discrepancy between imaging domains** The analysis of the generalization discrepancies between imaging domains (Sec. 5.2) could be improved by rigorously demonstrating that the observed shift in Fig. 2 is indeed caused by Eq. 2 (and similarly for Fig. 5 and Eq. 4). Currently, it is difficult to ascertain whether the derived laws hold empirically. The authors should provide a quantitative measure of the likelihood that the observed shifts are explained by their proposed scaling laws. For Fig. 5, in particular, the empirical evidence appears weak, and it is not clear that the observed trends are well-captured by the theoretical results. The authors acknowledge that other factors may contribute to the observed discrepancies, but a more thorough analysis of the proposed scaling laws is needed.\n\n4. **Adversarial robustness** I find the analysis on adversarial robustness somewhat limited.\n    - How does the scaling law behave w.r.t $K_\\mathcal{F}$ estimates in the feature space of the trained classifier? This is particularly relevant since the authors compute $d_\\text{repr}$ in the feature space, and it would be insightful to see if a similar relationship exists for $K_\\mathcal{F}$.\n    - The chosen perturbation budgets $\\epsilon \\in \\{ 1/255, 2/255, 4/255, 8/255\\}$ have vastly different interpretations for medical and natural images because medical images are *always* represented using floating point numbers. For example for CT data a budget of $8/255$ on images rescaled to $[0,1]$ could alter the pixel values by several hundreds Houndsfield units (HU), a perturbation easily detectable due to the physical interpretation of HU. The authors should clarify how these perturbations relate to clinically relevant changes in medical images.\n\n5. **Investigate different architectures and tasks** Not that much of a weakness as it is a suggestion for future work. The authors limit their analysis to standard CNNs and a binary classification task. It would be very interesting to consider newer architectures and multi-class classification or even segmentation tasks. It would also be valuable to investigate whether these insights could be used to predict the uncertainty of a classification given the $K_\\mathcal{F}$ between similar labels (e.g. types of metastasis).\n\n6. **Source Code** Unfortunately the authors did not provide the source code for their experiments in the Supplementary.",
+      "weakness_similarity": 0.5562,
+      "reference_strength": "The paper is very well written and interesting to read. It tackles an interesting and important problem. Although not carefully checked, the Theorems and proofs seem sound.",
+      "strength_similarity": 0.0765
+    },
+    {
+      "reviewer_id": "reviewer_3",
+      "reference_summary": "The authors proposed a metric called label sharpness K_F to measure the similarity between images belonging to different classes in a dataset and investigated how this metric correlates with the generalisation performance and adversarial robustness. The new metric was validated on a variety of natural and medical image datasets through extensive experiments.",
+      "summary_similarity": 0.6925,
+      "reference_weakness": "1. Task dependence. The proposed label sharpness metric is inherently dependent on the specific tasks, whereas intrinsic dimension is a fixed data property. While the authors have made efforts to rule out alternatives, the medical datasets used may not directly correspond to the natural image classification tasks. For instance, the medical datasets tackle lesion detection where backgrounds are similar, likely making it more difficult than ImageNet classification. To better match ImageNet, the authors could also evaluate on RadImageNet by designing some easier tasks (e.g., CT/MRI/ultrasound discrimination). This also gives a benchmark on the scaling law when the training size is large.\n2. Image preprocessing. All images were resized to 224x224 in this study, though prior work suggests intrinsic dimension is insensitive to the resolution of natural images. The authors should verify this holds for medical images, where a minimum resolution is needed to capture lesions. Providing comparisons across multiple resolutions could reveal if label sharpness or intrinsic dimension changes substantially.",
+      "weakness_similarity": 0.7026,
+      "reference_strength": "1. Present a theoretical understanding of the generalisation among natural and medical image datasets\n2. Practical estimation of K_F\n3. Validation through extensive experiments",
+      "strength_similarity": 0.5542
+    },
+    {
+      "reviewer_id": "reviewer_4",
+      "reference_summary": "This paper tackles the problem of measuring dataset complexity for predicting test-set generalization, showing that the trends in natural images don't match the trends in medical images. This work offers three main contributions, with theoretical results provided throughout. The first is a proposed metric they refer to as \"label sharpness\", which is meant to serve as a proxy for difficulty in generalizing by looking at the worst-case scenario between two data points where the images are very similar (by the L2 norm) but the labels are different. Second, they demonstrate that the sharpness of the dataset label distribution is negatively correlated with the adversarial robustness of a neural network. The third contribution is connecting their notion of d_data to d_repr, and showing how their scaling laws are related, with d_data serving as an approximate upper bound. The authors do this over a variety of both medical and natural image datasets and architectures.",
+      "summary_similarity": 0.7715,
+      "reference_weakness": " - A central claim of this paper is that \"medical images are typically more challenging to generalize to\". I don't think that this is a widely held belief or has been consistently shown throughout the literature (to this the authors heavily cite a work from 2022, which shows that in some cases maybe the scaling laws are different).\n- The measure of data sharpness, in the context of medical imaging, in my opinion is not well grounded. For medical images, especially those where you need to identify minor changes or tumors to correct classify things, the majority of the image will be the same as healthy images because the anatomies will be aligned. \n- The results seem quite weak across models and datasets, and for some figures there are lines drawn in which don't represent proper trend lines (Figure 2 in particular). Additionally, in the adversarial setting, regression coefficients are computed across both medical/natural image datasets, even though it's clear that within the natural image datasets and medical image datasets that there is very little correlation (visually) (Figure 3, Figure 6).\n- A claim was that models trained on datasets with similar data and of the same size N tend to perform much worse if the data is medical images, but the architectures chosen stem from the natural image domain and were tuned to those datasets.\n",
+      "weakness_similarity": 0.6461,
+      "reference_strength": "- The authors make an interesting attempt to provide a scaling law that is independent of the model itself, and rather depends on qualities of the data. Building insights which can be drawn from the training data alone seem very valuable.\n- The authors investigate the effects of their proposed metrics thoroughly across a variety of architectures and datasets, at both training and inference.",
+      "strength_similarity": 0.5647
+    }
+  ],
+  "avg_summary_similarity": 0.7995,
+  "max_summary_similarity": 0.8799,
+  "min_summary_similarity": 0.6925,
+  "avg_weakness_similarity": 0.6605,
+  "max_weakness_similarity": 0.737,
+  "min_weakness_similarity": 0.5562,
+  "per_weakness_matches": [
+    {
+      "generated_weakness": "Simplified Assumptions: The model assumes a constant intrinsic dimension throughout the dataset's manifold.",
+      "best_matching_reviewer": "reviewer_3",
+      "best_match_score": 0.3992,
+      "matched_reference_weakness": "1. Task dependence. The proposed label sharpness metric is inherently dependent on the specific tasks, whereas intrinsic dimension is a fixed data property. While the authors have made efforts to rule out alternatives, the medical datasets used may not directly correspond to the natural image classification tasks. For instance, the medical datasets tackle lesion detection where backgrounds are similar, likely making it more difficult than ImageNet classification. To better match ImageNet, the authors could also evaluate on RadImageNet by designing some easier tasks (e.g., CT/MRI/ultrasound discrimination). This also gives a benchmark on the scaling law when the training size is large.\n2. Image preprocessing. All images were resized to 224x224 in this study, though prior work suggests intrinsic dimension is insensitive to the resolution of natural images. The authors should verify this holds for medical images, where a minimum resolution is needed to capture lesions. Providing comparisons across multiple resolutions could reveal if label sharpness or intrinsic dimension changes substantially."
+    },
+    {
+      "generated_weakness": "Limited Scope of Adversarial Attacks: The study focuses primarily on FGSM attacks.",
+      "best_matching_reviewer": "reviewer_1",
+      "best_match_score": 0.5502,
+      "matched_reference_weakness": " - The proposed scaling law and the effect of label sharpness is only (partially) verified in two domains. I suggest adding other domains or datasets that have different label sharpness values. Specifically, the current analysis is limited to natural and medical imaging, and it is unclear if the observed trends hold for other types of data, such as satellite imagery or microscopy data, which might exhibit different characteristics in terms of label noise and image complexity. \n- The empirical results for the adversarial examples are not convincing enough, specially if we only consider the datasets within a single domain. Also the relationship between test set loss penalty vs label sharpness varies wildly based on the model used. This makes it harder for the reader to understand the message of section 6. The lack of consistent correlation between label sharpness and adversarial vulnerability within each domain raises questions about the robustness of the proposed link. The observed variability across models further complicates the interpretation, suggesting that model architecture might be a confounding factor that needs to be addressed more explicitly. The analysis should also consider different types of adversarial attacks, beyond FGSM, to ensure that the observed trends are not specific to one particular attack method.\n- The theoretical and empirical results may have limited practical uses. Adding some results on use cases such as determining the minimum number of annotations (as mentioned in Discussion) can further strengthen the paper. The current results are primarily focused on theoretical analysis and empirical validation of the proposed scaling law, but they lack a clear demonstration of how this framework can be applied to solve practical problems in medical imaging. For example, it would be beneficial to show how the proposed framework can be used to guide the selection of appropriate training set sizes or to predict the expected performance of a model on a new dataset."
+    },
+    {
+      "generated_weakness": "Potential Confounding Factors: The authors acknowledge that other factors besides label sharpness may contribute to the observed differences in generalization behavior.",
+      "best_matching_reviewer": "reviewer_4",
+      "best_match_score": 0.4313,
+      "matched_reference_weakness": " - A central claim of this paper is that \"medical images are typically more challenging to generalize to\". I don't think that this is a widely held belief or has been consistently shown throughout the literature (to this the authors heavily cite a work from 2022, which shows that in some cases maybe the scaling laws are different).\n- The measure of data sharpness, in the context of medical imaging, in my opinion is not well grounded. For medical images, especially those where you need to identify minor changes or tumors to correct classify things, the majority of the image will be the same as healthy images because the anatomies will be aligned. \n- The results seem quite weak across models and datasets, and for some figures there are lines drawn in which don't represent proper trend lines (Figure 2 in particular). Additionally, in the adversarial setting, regression coefficients are computed across both medical/natural image datasets, even though it's clear that within the natural image datasets and medical image datasets that there is very little correlation (visually) (Figure 3, Figure 6).\n- A claim was that models trained on datasets with similar data and of the same size N tend to perform much worse if the data is medical images, but the architectures chosen stem from the natural image domain and were tuned to those datasets.\n"
+    },
+    {
+      "generated_weakness": "Estimation limitations: The estimation of intrinsic dimension and label sharpness are approximations.",
+      "best_matching_reviewer": "reviewer_3",
+      "best_match_score": 0.6137,
+      "matched_reference_weakness": "1. Task dependence. The proposed label sharpness metric is inherently dependent on the specific tasks, whereas intrinsic dimension is a fixed data property. While the authors have made efforts to rule out alternatives, the medical datasets used may not directly correspond to the natural image classification tasks. For instance, the medical datasets tackle lesion detection where backgrounds are similar, likely making it more difficult than ImageNet classification. To better match ImageNet, the authors could also evaluate on RadImageNet by designing some easier tasks (e.g., CT/MRI/ultrasound discrimination). This also gives a benchmark on the scaling law when the training size is large.\n2. Image preprocessing. All images were resized to 224x224 in this study, though prior work suggests intrinsic dimension is insensitive to the resolution of natural images. The authors should verify this holds for medical images, where a minimum resolution is needed to capture lesions. Providing comparisons across multiple resolutions could reveal if label sharpness or intrinsic dimension changes substantially."
+    },
+    {
+      "generated_weakness": "Lack of generalizability: The study focuses on radiology images, which may limit the generalizability to other medical imaging modalities.",
+      "best_matching_reviewer": "reviewer_4",
+      "best_match_score": 0.6174,
+      "matched_reference_weakness": " - A central claim of this paper is that \"medical images are typically more challenging to generalize to\". I don't think that this is a widely held belief or has been consistently shown throughout the literature (to this the authors heavily cite a work from 2022, which shows that in some cases maybe the scaling laws are different).\n- The measure of data sharpness, in the context of medical imaging, in my opinion is not well grounded. For medical images, especially those where you need to identify minor changes or tumors to correct classify things, the majority of the image will be the same as healthy images because the anatomies will be aligned. \n- The results seem quite weak across models and datasets, and for some figures there are lines drawn in which don't represent proper trend lines (Figure 2 in particular). Additionally, in the adversarial setting, regression coefficients are computed across both medical/natural image datasets, even though it's clear that within the natural image datasets and medical image datasets that there is very little correlation (visually) (Figure 3, Figure 6).\n- A claim was that models trained on datasets with similar data and of the same size N tend to perform much worse if the data is medical images, but the architectures chosen stem from the natural image domain and were tuned to those datasets.\n"
+    }
+  ],
+  "avg_best_weakness_match": 0.5224,
+  "weakness_coverage_score": 1.0,
+  "aggregate_weakness_similarity": 0.737,
+  "avg_strength_similarity": 0.4575,
+  "max_strength_similarity": 0.6346,
+  "min_strength_similarity": 0.0765,
+  "per_strength_matches": [
+    {
+      "generated_strength": "Novelty: Introduction of the label sharpness ($\\KF$) metric and its incorporation into generalization scaling laws.",
+      "best_matching_reviewer": "reviewer_1",
+      "best_match_score": 0.4413,
+      "matched_reference_strength": "- The paper addresses an important knowledge gap in understanding generalization error of medical imaging domain. \n- The proposed scaling law is investigated both theoretically and empirically on a wide range of models. \n- The paper is clearly written and relatively easy to follow."
+    },
+    {
+      "generated_strength": "Theoretical Foundation: Strong theoretical grounding for the derived scaling laws and relationships.",
+      "best_matching_reviewer": "reviewer_4",
+      "best_match_score": 0.4669,
+      "matched_reference_strength": "- The authors make an interesting attempt to provide a scaling law that is independent of the model itself, and rather depends on qualities of the data. Building insights which can be drawn from the training data alone seem very valuable.\n- The authors investigate the effects of their proposed metrics thoroughly across a variety of architectures and datasets, at both training and inference."
+    },
+    {
+      "generated_strength": "Comprehensive Evaluation: Extensive experiments across multiple models, datasets, and training set sizes.",
+      "best_matching_reviewer": "reviewer_4",
+      "best_match_score": 0.5863,
+      "matched_reference_strength": "- The authors make an interesting attempt to provide a scaling law that is independent of the model itself, and rather depends on qualities of the data. Building insights which can be drawn from the training data alone seem very valuable.\n- The authors investigate the effects of their proposed metrics thoroughly across a variety of architectures and datasets, at both training and inference."
+    },
+    {
+      "generated_strength": "Practical Relevance: Insights into the challenges of applying deep learning models to medical imaging and the importance of considering intrinsic dataset properties.",
+      "best_matching_reviewer": "reviewer_1",
+      "best_match_score": 0.5142,
+      "matched_reference_strength": "- The paper addresses an important knowledge gap in understanding generalization error of medical imaging domain. \n- The proposed scaling law is investigated both theoretically and empirically on a wide range of models. \n- The paper is clearly written and relatively easy to follow."
+    },
+    {
+      "generated_strength": "Clear Presentation: Well-structured and clearly written, with detailed explanations of the methodology and results.",
+      "best_matching_reviewer": "reviewer_2",
+      "best_match_score": 0.1642,
+      "matched_reference_strength": "The paper is very well written and interesting to read. It tackles an interesting and important problem. Although not carefully checked, the Theorems and proofs seem sound."
+    }
+  ],
+  "avg_best_strength_match": 0.4346,
+  "strength_coverage_score": 0.5,
+  "aggregate_strength_similarity": 0.7564
+}

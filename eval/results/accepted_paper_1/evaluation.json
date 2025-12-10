@@ -1,0 +1,109 @@
+{
+  "paper_id": "accepted_paper_1",
+  "paper_file": "input/accepted_paper_1.txt",
+  "paper_type": "accepted",
+  "executive_summary": "This paper introduces WizardCoder, a novel approach to enhance Code Large Language Models (LLMs) by leveraging a code-specific adaptation of the Evol-Instruct method. Most existing Code LLMs primarily focus on pre-training with raw code data, with limited exploration of instruction fine-tuning in the code domain. WizardCoder addresses this gap by generating intricate code instruction data through a refined evolutionary prompt process tailored for code-related tasks. This includes streamlining evolutionary instructions, simplifying prompt formats, and incorporating code debugging and time-space complexity constraints.\n\nThe experimental results demonstrate that WizardCoder outperforms all other open-source Code LLMs on four widely recognized code generation benchmarks: HumanEval, HumanEval+, MBPP, and DS-1000. Notably, it achieves state-of-the-art (SOTA) performance and even surpasses larger closed-source LLMs like Anthropic's Claude and Google's Bard in certain benchmarks. The study includes a comprehensive evaluation and ablation studies to validate the effectiveness of the proposed method. The findings suggest that code-specific instruction fine-tuning using Evol-Instruct can significantly improve the performance of Code LLMs, bridging the performance gap between open-source and closed-source models in the code domain.",
+  "generated_weaknesses": [
+    "WizardCoder still falls significantly behind the SOTA LLM, GPT4.",
+    "The potential for generating unethical, harmful, or misleading information, similar to other LLMs."
+  ],
+  "generated_strengths": [
+    "Demonstrates a novel approach to enhance Code LLMs using code-specific Evol-Instruct.",
+    "Achieves state-of-the-art performance compared to existing open-source Code LLMs.",
+    "Outperforms larger closed-source LLMs on certain benchmarks (HumanEval and HumanEval+).",
+    "Provides a comprehensive evaluation on multiple code generation benchmarks (HumanEval, HumanEval+, MBPP, DS-1000)."
+  ],
+  "reviewer_similarities": [
+    {
+      "reviewer_id": "reviewer_1",
+      "reference_summary": "WizardCoder proposes an instruction fine-tuning method for code - Code Evol-Instruct where a large synthetic dataset is created using a seed set of code tasks (Code Alpaca) which are evolved by GPT-3.5 to increase their difficulty and complexity in multiple rounds. When fine-tuned using this dataset, publicly available models like CodeLlama and StarCoder are shown to outperform all other open sourced alternatives, and are comparable to some of the closed source ones on many different benchmarks on code generation like HumanEval, MBPP and DS-1000.",
+      "summary_similarity": 0.7851,
+      "reference_weakness": " - While results on code benchmarks are impressive, novelty of the scientific methodology itself is quite limited as it is an adaptation of Evol-Instruct for Code.\n- Missing human assessment - It is not clear how useful the final fine-tuned model is outside the benchmarks that focus exclusively on functional correctness. Model hasn't been tested on developer productivity tasks like completion, code refinement.\n- Not clear if data leakage has been prevented. Does the evolved data or seed data overlap with HumanEval or other benchmarks' test set?\n- The paper assumes the reader to be familiar with Evol Instruct, and does not provide sufficient context to follow the method.",
+      "weakness_similarity": 0.2146,
+      "reference_strength": "- Clever instruction finetuning idea on creating datasets synthetically using gpt-3.5 and a small set of seed tasks\n- Exhaustively tested on different programming languages, impressive performance gains using publicly available models (StarCoder and CodeLlama-34B) across several benchmarks. -HumanEval+, MBPP, MultPL-E, and DS-1000",
+      "strength_similarity": 0.5036
+    },
+    {
+      "reviewer_id": "reviewer_2",
+      "reference_summary": "The paper proposed a new way, Code Evol-Instruct, to fine-tune an LLM for coding tasks. The method starts from a set of existing code questions, then uses another LLM (GPT 3.5, in this case) to add one more step of complexity or difference to make a new question. Detailed prompts for evol-instruct are provided in the paper. 4 rounds of evol-instruct expanded the original 20k Code Alpaca instruction set to 87k. The WizardCoder model fine-tuned with this set ranked only behind GPT-4 in HumanEval and other popular coding benchmarks, beating other major open and closed-sourced models.\n\nThe paper also analyzes the effectiveness of the evol-instruct set from different rounds of expansion. The results show that generally more data leads to better performance (except with the addition of round 4), the same amount of tokens from more complex instructions works better, and the data expansion didn't create more similar data to the test set.",
+      "summary_similarity": 0.8023,
+      "reference_weakness": " - Missing some key details. Where does the new coding solution come after expanding the instruction? Did we use the base model itself, or GPT-3 to generate them? Did we do any deduplication of the expanded instructions? Did we verify the quality of new instructions by executing the code generated?\n\nUpdate: based on the author's feedback, the coding solutions in the training data are from GPT-3.5-turbo. This presents a risk of data leakage, that WizardCoder becomes an implicitly distilled model of GPT-3.5-turbo on a specific capability.\n\n- Weak analysis. Why does round 4 have a negative impact on the quality? The paper mentioned \"some evolution process will fail\" but provided no detail. Other analysis related questions will be in the \"questions\" section.\n\n- Writing quality can be improved. The paper uses more sentences to repeatedly claim WizardCoder's performance (which is indeed impressive) but vague on implementation details and analysis.\n\n- Inconsistency in the data. Figure 2 reported GPT-4 has a HumanEval pass@1 of 88.4, while Table 1 showed 67.0.",
+      "weakness_similarity": 0.5739,
+      "reference_strength": "- The method works. It produced a top-performing open source code model that surpasses bigger and closed-source models in multiple open evaluations. This is the biggest strength of the paper and the value to the research community.\n\n- Paper provided extensive comparison with existing models and between different rounds of evol-instruct expansions.",
+      "strength_similarity": 0.6578
+    },
+    {
+      "reviewer_id": "reviewer_3",
+      "reference_summary": "The paper extends the idea of instruction fine-tuning to code LLMs. The proposed approach uses GPT-3.5 to evolve existing instruction data to generate complex and diverse set of examples in an iterative manner. Using the synthetic evolving data followed by instructions, the authors fine-tune SOTA coda LLMs. The results show improved performance of the models for a wide range of tasks.",
+      "summary_similarity": 0.6737,
+      "reference_weakness": "$\\\n$$\\mathtt{-}$ It is not clear how the authors came up with the list of heuristics for data evolution. The paper mentions five heuristics: adding constraints, replacing constraints, adding reasoning steps, introducing error code, and emphasizing time and space complexity. However, there is no justification or explanation for choosing these specific heuristics. This unclarity makes such approaches less applicable to wide range of tasks, as it is not apparent how one would derive a similar set of heuristics for a different domain or problem.\n\n$\\mathtt{-}$ While the ablation studies in the main body provides some insights on the efficacy of the technique, there are still some concerns. For instance, Table 4 shows that the Pass@1 score decreases as the number of iterations increases. This suggests that the quality of the generated data might be degrading with each iteration, which could negatively impact the performance of the fine-tuned models.\n\n$\\mathtt{-}$ While the idea is interesting, but it seems very incremental compared to prior work and the contributions are limited. The concept of using a more capable model to generate instructions for training a less capable model has been explored in previous research. The main novelty here seems to be the iterative evolution of instructions, but the impact of this evolution is not thoroughly analyzed or justified.",
+      "weakness_similarity": 0.119,
+      "reference_strength": "$\\mathtt{+}$ I think overall exploring ideas around how we can improve the efficacy of LLMs for different application is interesting.\n\n$\\mathtt{+}$ Improving SOTA using the proposed instruction-tuning method is valuable and opens up new direction. The ablation studies further help to expand how and to what extend each technique helps (with some caveats that I will expand in the question section).",
+      "strength_similarity": 0.3931
+    },
+    {
+      "reviewer_id": "reviewer_4",
+      "reference_summary": "This paper presents a novel approach called \"Code Evol-Instruct\", which adapts the \"Evol-Instruct\" method to the domain of code, enhancing the performance of open-source Code LLMs.The authors use Code Evol-Instruct to evolve basic code instruction data and then fine-tune existing open-source Code LLMs, resulting in the creation of \"WizardCoder\" models to improve the ability of these models to generate high-quality code based on more complex instructions. The WizardCoder outperforms other open-source models and even rivals larger closed-source LLMs in certain coding tasks.",
+      "summary_similarity": 0.8101,
+      "reference_weakness": "1. In section 4.3, Table 1, Result of pass@1(%) on HumanEval and MBPP, the result of pass@1(%) on MBPP is not as good as the result on HumanEval. HumanEval only tests a narrow distribution and can be overfitted. The benchmark needs to be upgraded.",
+      "weakness_similarity": 0.1394,
+      "reference_strength": "1. Introduction of Code Evol-Instruct, an innovative method for enhancing open-source Code LLMs, which significantly improves their performance in code generation tasks.\n2. Even the smaller 15B version of WizardCoder outperforms larger closed-source LLMs like Claude and Bard on certain benchmarks, while the 34B version achieves performance comparable to GPT-3.5 (ChatGPT) and surpasses it on specific benchmarks.",
+      "strength_similarity": 0.8325
+    }
+  ],
+  "avg_summary_similarity": 0.7678,
+  "max_summary_similarity": 0.8101,
+  "min_summary_similarity": 0.6737,
+  "avg_weakness_similarity": 0.2617,
+  "max_weakness_similarity": 0.5739,
+  "min_weakness_similarity": 0.119,
+  "per_weakness_matches": [
+    {
+      "generated_weakness": "WizardCoder still falls significantly behind the SOTA LLM, GPT4.",
+      "best_matching_reviewer": "reviewer_2",
+      "best_match_score": 0.5843,
+      "matched_reference_weakness": " - Missing some key details. Where does the new coding solution come after expanding the instruction? Did we use the base model itself, or GPT-3 to generate them? Did we do any deduplication of the expanded instructions? Did we verify the quality of new instructions by executing the code generated?\n\nUpdate: based on the author's feedback, the coding solutions in the training data are from GPT-3.5-turbo. This presents a risk of data leakage, that WizardCoder becomes an implicitly distilled model of GPT-3.5-turbo on a specific capability.\n\n- Weak analysis. Why does round 4 have a negative impact on the quality? The paper mentioned \"some evolution process will fail\" but provided no detail. Other analysis related questions will be in the \"questions\" section.\n\n- Writing quality can be improved. The paper uses more sentences to repeatedly claim WizardCoder's performance (which is indeed impressive) but vague on implementation details and analysis.\n\n- Inconsistency in the data. Figure 2 reported GPT-4 has a HumanEval pass@1 of 88.4, while Table 1 showed 67.0."
+    },
+    {
+      "generated_weakness": "The potential for generating unethical, harmful, or misleading information, similar to other LLMs.",
+      "best_matching_reviewer": "reviewer_1",
+      "best_match_score": 0.1671,
+      "matched_reference_weakness": " - While results on code benchmarks are impressive, novelty of the scientific methodology itself is quite limited as it is an adaptation of Evol-Instruct for Code.\n- Missing human assessment - It is not clear how useful the final fine-tuned model is outside the benchmarks that focus exclusively on functional correctness. Model hasn't been tested on developer productivity tasks like completion, code refinement.\n- Not clear if data leakage has been prevented. Does the evolved data or seed data overlap with HumanEval or other benchmarks' test set?\n- The paper assumes the reader to be familiar with Evol Instruct, and does not provide sufficient context to follow the method."
+    }
+  ],
+  "avg_best_weakness_match": 0.3757,
+  "weakness_coverage_score": 0.25,
+  "aggregate_weakness_similarity": 0.4416,
+  "avg_strength_similarity": 0.5967,
+  "max_strength_similarity": 0.8325,
+  "min_strength_similarity": 0.3931,
+  "per_strength_matches": [
+    {
+      "generated_strength": "Demonstrates a novel approach to enhance Code LLMs using code-specific Evol-Instruct.",
+      "best_matching_reviewer": "reviewer_4",
+      "best_match_score": 0.7661,
+      "matched_reference_strength": "1. Introduction of Code Evol-Instruct, an innovative method for enhancing open-source Code LLMs, which significantly improves their performance in code generation tasks.\n2. Even the smaller 15B version of WizardCoder outperforms larger closed-source LLMs like Claude and Bard on certain benchmarks, while the 34B version achieves performance comparable to GPT-3.5 (ChatGPT) and surpasses it on specific benchmarks."
+    },
+    {
+      "generated_strength": "Achieves state-of-the-art performance compared to existing open-source Code LLMs.",
+      "best_matching_reviewer": "reviewer_4",
+      "best_match_score": 0.7473,
+      "matched_reference_strength": "1. Introduction of Code Evol-Instruct, an innovative method for enhancing open-source Code LLMs, which significantly improves their performance in code generation tasks.\n2. Even the smaller 15B version of WizardCoder outperforms larger closed-source LLMs like Claude and Bard on certain benchmarks, while the 34B version achieves performance comparable to GPT-3.5 (ChatGPT) and surpasses it on specific benchmarks."
+    },
+    {
+      "generated_strength": "Outperforms larger closed-source LLMs on certain benchmarks (HumanEval and HumanEval+).",
+      "best_matching_reviewer": "reviewer_4",
+      "best_match_score": 0.4561,
+      "matched_reference_strength": "1. Introduction of Code Evol-Instruct, an innovative method for enhancing open-source Code LLMs, which significantly improves their performance in code generation tasks.\n2. Even the smaller 15B version of WizardCoder outperforms larger closed-source LLMs like Claude and Bard on certain benchmarks, while the 34B version achieves performance comparable to GPT-3.5 (ChatGPT) and surpasses it on specific benchmarks."
+    },
+    {
+      "generated_strength": "Provides a comprehensive evaluation on multiple code generation benchmarks (HumanEval, HumanEval+, MBPP, DS-1000).",
+      "best_matching_reviewer": "reviewer_1",
+      "best_match_score": 0.5631,
+      "matched_reference_strength": "- Clever instruction finetuning idea on creating datasets synthetically using gpt-3.5 and a small set of seed tasks\n- Exhaustively tested on different programming languages, impressive performance gains using publicly available models (StarCoder and CodeLlama-34B) across several benchmarks. -HumanEval+, MBPP, MultPL-E, and DS-1000"
+    }
+  ],
+  "avg_best_strength_match": 0.6331,
+  "strength_coverage_score": 0.75,
+  "aggregate_strength_similarity": 0.7236
+}

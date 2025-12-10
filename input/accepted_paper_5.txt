@@ -1,0 +1,185 @@
+\title{Geometry-Aware Projective Mapping for Unbounded Neural Radiance Fields}
+
+\begin{abstract}
+Estimating neural radiance fields (NeRFs) is able to generate novel views of a scene from known imagery. Recent approaches have afforded dramatic progress on small bounded regions of the scene. For an unbounded scene where cameras point in any direction and contents exist at any distance, certain mapping functions are used to represent it within a bounded space, yet they either work in object-centric scenes or focus on objects close to the camera. The goal of this paper is to understand how to design a proper mapping function that considers per-scene optimization, which remains unexplored. We first present a geometric understanding of existing mapping functions that express the relation between the bounded and unbounded scenes. Here, we exploit a stereographic projection method to explain failures of the mapping functions, where input ray samples are too sparse to account for scene geometry in unbounded regions. To overcome the failures, we propose a novel mapping function based on a $p$-norm distance, allowing to adaptively sample the rays by adjusting the $p$-value according to scene geometry, even in unbounded regions. To take the advantage of our mapping function, we also introduce a new ray parameterization to properly allocate ray samples in the geometry of unbounded regions. Through the incorporation of both the novel mapping function and the ray parameterization within existing NeRF frameworks, our method achieves state-of-the-art novel view synthesis results on a variety of challenging datasets.
+\end{abstract}
+
+\section{1 INTRODUCTION  }
+
+
+Starting from the advance of neural radiance field (NeRF) framework Mildenhall et al. (2020), a series of novel view synthesis methods Barron et al. (2021); Sitzmann et al. (2020) have recently shown impressive performance in various scenarios such as surrounding views Chen et al. (2022b), moving foreground objects Pumarola et al. (2020), and reflective media Verbin et al. (2022). Furthermore, Instant-NGP (iNGP) Mu¨ller et al. (2022) and TensoRF Chen et al. (2022a) represent a paradigm shift that defines 3D query points using voxel grids for fast training and rendering. All the methods utilize a bounded volume that covers all objects in a scene at first, and then render images from arbitrary viewpoints in common. Unfortunately, the bounded volume cannot fully encompass whole rendering spaces. For unbounded scenes, the models fail to learn accurate 3D geometry and yield erroneous color representations for distant objects. As an intuitive way, expanding the size of the bounded volume can be considerable, but increases the number of samples in a ray and learnable parameters, which causes a huge computational burden like memory issues.  
+
+To address this issue on unbounded scenes, state-of-the-art methods Zhang et al. (2020); Barron et al. (2022; 2023) use deterministic functions to map ray samples in the unbounded region into the bounded region. To be specific, in $\mathrm{NeRF+}$ Zhang et al. (2020), an unbounded space is partitioned into an inner sphere and an outer volume. The inner sphere is an identity mapping which contains a foreground of a scene and all cameras, and the the outer volume has a background scene. This is achieved using an inverted-sphere mapping, which utilizes an inverse distance from an origin of a scene to render the background pixels. mip-NeRF 360 and Zip-NeRF Barron et al. (2022; 2023) parameterize unbounded scenes using an identity mapping for a foreground and contract mapping to sample the volumetric density for a background. Here, with the parameterization of the contract mapping, sampling ranges in a ray can be expanded to an infinite depth of the scene, representing  
+
+Figure 1: Examples of changes of embedding space w.r.t. manifold shape. We plot how to be mapped an unbounded space into a bounded space. The red arrow indicates the mapping between the unbounded space and the surface of the manifold based on the center of projection $Q$ . The yellow line refers a mapping space between the tree and the tower, and the horizontal and vertical axis represent a sliced axis of the 3-dimensional real-world space and the 4th dimensions (i.e., hyper-axis), respectively. The hyper-axis acts as a homogeneous coordinate, and is introduced to describe a projection fuction. (a) Stereographic projection uses a sphere for the projection. (b) Inverted sphere mapping in Zhang et al. (2020), and (c) contract mapping in Barron et al. (2022) utilize a cylinderical and a paraboloid manifold, respectively, instead of the sphere. (d) Our mapping strategy adaptively allocates the space with the different shapes of manifolds based on the scene geometry.  
+
+![](images/10208e72c23f7a052c54dbfd1a6c9a1fe749d28d559089fb9b7d5e1d2fdaa46a.jpg)  
+
+pixels located in the unbounded regions. While these mapping functions effectively model unbounded regions from novel viewpoints, they encounter a difficulty in rendering distant objects, particularly when camera poses are positioned significantly away from a center of themselves in world coordinate, called a scene origin in Zhang et al. (2020). Obviously, ray samplings also fail if the ray origin is far away from the scene origin, which has a significant impact on the usability of neural rendering such as $360^{\circ}$ real-world Barron et al. (2022) and free trajectory Wang et al. (2023).  
+
+In this paper, we first introduce a unified framework for analyzing the unbounded scene representations using a concept of stereographic projection1, a well-known method to make a map of the Earth in Fig. 1-(a). The stereographic projection can be adopted to describe a boundless region within a specific manifold (e.g., panorama image) Chang et al. (2013); Yang et al. (2018); Zelnik-Manor et al. (2005). With the property of the stereographic projection, we can project an infinite space into a bounded region, and analyze the previous approaches Zhang et al. (2020); Barron et al. (2022) to explore the relationship between unbounded real-world spaces and bounded spaces based on closed-form mapping functions. Through this analysis, we investigate the vulnerability of the existing mapping functions in terms of the manifold’s shape. Fig. 1-(b) and (c) illustrate that the inverted sphere and the contract mapping project a real-world space into cylindrical space Zhang et al. (2020) and paraboloidal space Barron et al. (2022), respectively. They show that the two mapping functions pay more attention to the near object, which indicates that they do not have enough capacity to represent the far region. Since their mapping functions are invariant even if a scene varies, its ratio between the pre-defined near and far regions does not change.  
+
+Our key insight is that the manifold shape should be adjusted according to scene geometry to ensure the representation capacity of both near and far regions. To do this, we design an adaptive mapping function based on the $p$ -norm distance Deza et al. (2014), a method to define finite-dimensional vector spaces using the $p$ -norm. The parameter $p$ enables a mapping function to deform the surface of the embedding space depending on the scene configurations. A large $p$ makes the surface convex and allocates more capacity to nearby contents on the finite volume. In contrast, a small $p$ induces the concave of the surface, which leads to a larger capacity to distant contents. For example, in Fig. 1-(d), the adaptive mapping enables us to assign the much less representation capacity to the free space between the tree and tower. Since it is important to determine the $p$ value according to the scene geometry, we show how to automatically set a proper $p$ value using a RANSAC framework. We randomly choose certain 3D points from a point cloud in a scene and then iteratively project them onto the embedding space. We measure distances among them and find a final $p$ value with the maximum distance, which exploits the full capacity of the embedding space.  
+
+Given our novel mapping function, it requires an appropriate ray parametrization, making ray intervals of sampled points to be evenly-spaced in the deformed embedding space. If the intervals are either too small or too large in the space, there will be over- or under-sampling problems. For this, we need to devise a strategy for choosing adaptive intervals according to scene geometry because the conventional ray parameterizations Zhang et al. (2020); Barron et al. (2022) use fixed intervals regardless of the shape of the manifold. We thus propose a novel angular ray parameterization to adaptively select proper intervals, which are determined based on an angle between two sampled points in an unbounded space from a center of the manifold.  
+
+To demonstrate the effectiveness of the proposed mapping function and ray parameterization, we conduct extensive experiments on unbounded scenes, including $360^{\circ}$ object-centric and free trajectory. Experimental results show that our method can be successfully integrated with existing multilayer perceptron (MLP)-based and voxel-based models and contribute to significant performance improvements for novel view synthesis, where the conventional mapping functions often fail.  
+
+
+
+\section{2 RELATED WORK  }
+
+
+
+
+\section{2.1 NEURAL RADIANCE FIELD  }
+
+
+NeRF frameworks Mildenhall et al. (2020) implicitly encode radiance and density fields of target scenes with MLP layers without any explicit geometric proxy. In terms of the sparsity of input images, works in Yu et al. (2021b); Kim et al. (2022); Deng et al. (2022) reconstruct scenes with fewer images than that of conventional NeRF techniques. Meanwhile, methods to accelerate training Mu¨ller et al. (2022); Takikawa et al. (2022); Chen et al. (2022a); Sun et al. (2022); Yu et al. (2021a); Sara Fridovich-Keil and Alex Yu et al. (2022) and inference Reiser et al. (2021); Yu et al. (2021a); Piala & Clark (2021); Hedman et al. (2021); Garbin et al. (2021) are developed. We note that these works have shown impressive performances if contents exist inside a pre-defined bounded volume.  
+
+To alleviate the constraint on the bounded volume, some relevant works have scaled up the sampling boundary of the volumetric representations by addressing technical limitations such as the radiance ambiguity Wei et al. (2021), network capacity Rebain et al. (2021), and matching ambiguity of 3D content Arandjelovi´c & Zisserman (2021). For indoor scenes, NeRFusion Zhang et al. (2022) constructs each local feature volume from each input image and fuses them through a truncated signed distance function Newcombe et al. (2011); Weder et al. (2020). For outdoor scenes, both Block-NeRF Tancik et al. (2022) and Mega-NeRF Turki et al. (2022) represent block-size scenes with divide-and-conquer strategies in which one large-scale place is divided into a set of small-scale scenes. They are then trained with volumetric renderers. For larger-scale scenes, BungeeNeRF Xiangli et al. (2022) uses a multi-scale rendering with very different levels of details in a wide span of viewpoints. Although these scalable methods extend the rendering ranges by using additional networks, the issue on the unbounded scenes still remains.  
+
+
+
+\section{2.2 NERF FOR UNBOUNDED SCENES  }
+
+
+To learn radiance fields for unbounded scenes, previous methods adopt multi-sphere images Sara Fridovich-Keil and Alex Yu et al. (2022); Attal et al. (2020), balanced spherical grid Choi et al. (2023), space subdivision Wang et al. (2023) and coordinate transformation Barron et al. (2022); Zhang et al. (2020). Plenoxels Sara Fridovich-Keil and Alex Yu et al. (2022) employs multi-sphere images Attal et al. (2020) to render background scenes, handling unbounded scenes with voxel grids. Nevertheless, this approach manifests limitations, particularly in the emergence of blur and ghost artifacts when depicting objects positioned between the pre-defined layered spheres. The work in Choi et al. (2023) uses sequential spherical panorama images to reconstruct a large-scale scene. And then, two non-overlapped spherical grids allow the scene to be represented with a similar length in angular and radial directions, useful for distant backgrounds. F2-NeRF Wang et al. (2023) models unbounded scenes with subdivided spaces and warping functions. However, this subdivision is intrinsically tied to camera poses and is sensitive to scene dependency. For example, F2-NeRF would use the same structure of subdivided space if camera poses are the same with other scenes. DONeRF Neff et al. (2021) applies the inverse square function for an efficient representation of distant points, but only works on forward-facing scenarios. mip-NeRF 360 Barron et al. (2022) borrows the idea of the Extended Kalman fliter Kalman (1960) to reparameterize the ray distance so that distant points should be denser and less spaced. $\mathrm{NeRF+}$ Zhang et al. (2020) takes an inverse function on the ray distance as the mapping function and uses it as an additional input coordinate. Specifically, they divide the background and foreground parts of scenes based on the distance from the origin and make MLPs to represent each.  
+
+Since the mapping functions in the previous methods are strictly defined, they struggle to learn radiance fields in diverse scenarios due to their inability to handle scene dependency. In contrast, we present a universal mapping function, which is flexible and general to learn both bounded and unbounded regions in neural radiance spaces.  
+
+
+
+\section{3 PRELIMINARY  }
+
+
+Radiance field Mildenhall et al. (2020); Chen et al. (2022a); Sun et al. (2022); M¨uller et al. (2022) represents a 3D scene through MLPs or voxel grids with sampled points from a ray function $\pmb{r}(t)=$ $\mathbf{\nabla}o+t\mathbf{d}$ , where $^o$ is a ray origin, $^d$ is a vector of a viewing direction and $t$ is a distance along the ray. Input 3D points are sampled along the ray function and fed to MLPs or voxel grids to infer an output color $^c$ and a density $\sigma$ . The output color and density along the ray are cumulated by a classical volume rendering equation Porter & Duff (1984) below:  
+
+$$
+{\mathcal{C}}(\mathbf{r})=\sum_{i=1}^{N}T_{i}\left(1-\exp(-\sigma_{i}\delta_{i})\right)\mathbf{c}_{i},\qquad{\mathrm{s.t.}}\quad T_{i}=\exp\left(-\sum_{j=1}^{i-1}\sigma_{j}\delta_{j}\right)
+$$  
+
+where ${\mathcal{C}}(\mathbf{r})$ is a synthesized pixel color of the ray, $N$ denotes the number of samples along the ray and $\delta_{i}$ means a distance between the $i$ -th sample and its next sample on the ray. The radiance field is optimized by minimizing a loss function between a ground-truth and the synthesized pixel color.  
+
+To render the pixel color in unbounded regions, $\mathrm{NeRF+}$ Zhang et al. (2020) adopts an inverted sphere parameterization as follows:  
+
+$$
+{\begin{array}{r l}&{{\mathrm{inverted~sphere}}(x)={\left\{\begin{array}{l l}{(x_{1},\,x_{2},\,x_{3}),}&{{\|}x{\|}\leq1}\\ {\left({\frac{x_{1}}{\|x\|}},\,{\frac{x_{2}}{\|x\|}},\,{\frac{x_{3}}{\|x\|}},\,{\frac{1}{\|x\|}}\right),}&{{\|}x{\|}>1,}\end{array}\right.}}\end{array}}
+$$  
+
+where $\pmb{x}=(x_{1},x_{2},x_{3})$ refers to 3D coordinate in the unbounded space.  
+
+This parameterization first defines a foreground of a scene with a unit sphere centered at the scene origin, otherwise background regions. A key idea of this parameterization is to map the background points onto to 4-dimensional bounded space made from a concatenation of the inverse distance $\frac{1}{\|\pmb{x}\|}$ from the scene origin and its normalized coordinate $\begin{array}{r}{\left(\frac{x_{1}}{\|\mathbfit{x}\|},\frac{x_{2}}{\|\mathbfit{x}\|},\frac{x_{3}}{\|\mathbfit{x}\|}\right)}\end{array}$ . The foreground and the background contents are separately learned on different MLPs.  
+
+The contract parameterization used in mip-NeRF 360 Barron et al. (2022) and Zip-NeRF Barron et al. (2023) is the other way to map unbounded points into a bounded region, which is formulated as:  
+
+$$
+\mathrm{contract}(x)={\left\{\begin{array}{l l}{x,}&{\|x\|\leq1}\\ {{\big(}2-{\frac{1}{\|x\|}}{\big)}{\big(}{\frac{x}{\|x\|}}{\big)},}&{\|x\|>1.}\end{array}\right.}
+$$  
+
+The contract parameterization maps an infinity point on the boundary of the bounded volume.  
+
+Although the inverted sphere and contract parameterizations can represent objects located at an unlimited distance from the scene origin, they fail to consider regions where sampled points are allocated sparsely. To efficiently assign the samples, dense sampling around the objects is necessary. This problem can be managed by constructing a scene geometry-aware mapping function with a relation between sampled points in the unbounded region and the transformed points.  
+
+
+
+\section{4 METHODOLOGY  }
+
+
+
+
+\section{4.1 UNDERSTANDING UNBOUNDED SCENES WITH STEREOGRAPHIC PROJECTION  }
+
+
+We understand the limitations of the existing mapping functions, the inverted sphere mapping Zhang et al. (2020) and the contract mapping Barron et al. (2022; 2023), for unbounded scenes via stereographic projection. First, we decompose the mapping functions into an inverse stereographic projection and an orthogonal projection. The inverse stereographic projection is used to construct a one-to-one relationship between an unbounded region and a certain manifold, while the orthogonal projection maps points into the surface of a manifold in a bounded region. As shown in Fig. 2-(a), the na¨ıve stereographic projection is defined with a unit sphere $S$ in $\bar{\mathbb{R}}^{L+1}$ where $L$ is the number of dimensions and the center of projection $Q$ , which is a point on the north pole of the sphere. The projection is conducted from a point $\pmb{x}_{m}$ in the $S\setminus\{Q\}$ to a point $\textbf{\em x}$ on the projective line (red line), which intersects a plane $\Pi$ in $\mathbb{R}^{L}$ with exactly one point $\textbf{\em x}$ . Since the original stereographic method (Fig. 2-(a)) maps points on the surface of the sphere, we cannot perform one-to-one orthogonal projection over the bounded region. There may exist a case that at most two points $\pmb{x}_{m}$ are projected on the same point $\mathbf{\nabla}x_{b}$ in the bounded region (Refer to Fig. To solve this problem, we utilize a certain manifold (e.g., a lower unit hemisphere) and change the location of the center of projection $Q$ (Fig. 2-(b) and (c)), which guarantees one-to-one projection between the manifold and the bounded space (Fig. 2-(d)). If we can deform the manifold shape, we construct diverse mapping functions in Fig. 2-(e), whose solution will be described in Section 4.3.  
+
+![](images/960b15e5962aadf3e0d12d27c2fc4acf3e0fcc9c99e30c1ddcdfe261d3bde0c1.jpg)  
+Figure 2: How to modify the stereographic projection for a deformable mapping function. (a) Conventional stereographic projection. A point $\pmb{x}_{m}$ on the sphere $S$ is projected onto a point $\textbf{\em x}$ in a plane $\mathbf{\delta}\pi$ (red-colored line). (b) The inverse stereographic projection. The point $\textbf{\em x}$ in $\mathbf{\delta}\pi$ is projected at the point ${\pmb x}_{m}$ . (c) The center of projection $Q$ is moved to the center of the manifold. We can only use a half side of the sphere. (d) The orthogonal projection (blue-colored line) is used to locate a point $\mathbf{\nabla}x_{b}$ in $\mathbf{\delta}\pi$ at the bounded space (purple-colored region) to reduce the dimensionality. (e) If we adaptively deform a shape of the manifold, the point $\textbf{\em x}$ can be mapped onto the different bounded spaces.  
+
+With the property of the stereographic projection, we derive the previous mapping functions in Eqs. (2) and (3) as a unified form which is able to show their manifold shapes. They utilize a coordinate transformation, which constructs a relationship between a points in real-world space $\mathbb{R}^{3}$ and the points in bounded space; Eq. (2) defines the mapping function that utilizes $\mathbb{R}^{3}$ and $\mathbb{R}^{\bar{4}}$ for the foreground and the background, respectively, and Eq. (3) uses $\mathbb{R}^{3}$ space as the bounded space. To investigate the manifold’s shape defined in $\bar{\mathbb{R}}^{4}$ , we design a closed-form mapping function that can represent the manifold’s shape (e.g., cylinder and paraboloid) on $\mathbb{R}^{3}$ . Since the orthogonal projection acts as a transformation between the bounded space and the manifold, we set the inverse of the orthogonal projection to $f:\mathbf{x}_{b}\rightarrow\mathbf{x}_{m}$ where $\pmb{x}_{b}\in\mathbb{R}^{4}$ is a mapped point in the bounded region and $\pmb{x}_{m}\in R^{4}$ is a point on the manifold.  
+
+
+
+\section{4.3 $p$ -NORM PARAMETERIZATION  }
+
+
+Based on the analysis in Section 4.2, we design an adaptable mapping function in consideration of distributions of contents using the modified stereographic projection and $p$ -norm distance metric. Here, we assume that the distributions follow an inverse of $p$ -norm distance from $Q$ as shown in Fig. 3-(b). The manifold where unbounded points are mapped can be represented as:  
+
+$X_{m}=\left\{\left.\begin{array}{l l}{\mathbf{x}_{m}}\end{array}\right|\right.\Vert\mathbf{x}_{m}-Q\Vert_{p}=1$  
+
+The mapping function $\frac{\pmb{x}}{m}$ is computed based on the $p$ -norm distance from the center of projection $Q^{\,2}$ , defined as ${\lVert\boldsymbol{x}-Q\rVert_{p}}$ . In particular, by setting $\begin{array}{r}{m=\frac{1}{\|\pmb{x}-Q\|_{p}}}\end{array}$ , we cxan formulate the mapping function from the unbounded region to the bounded region as xb = ∥x−Q∥p. Fig. 3-(b) shows an example of the $p$ -norm function indicating that we can map points into different locations according to the $p$ value. It shows that increasing the $p$ value makes $\mathbf{\nabla}x_{b}$ to be moved further from the scene origin, which assigns a bigger capacity to nearer contents.  
+
+We determine scene-dependent $p$ values using a RANSAC framework in Fig. 3-(b). We reuse a point cloud that had already been made for camera pose estimation at an initial step in conventional NeRF frameworks, using COLMAP Schonberger & Frahm (2016). Our hypothesis is that, in order to make full use of the embedding space, points should be evenly distributed in the whole space. To do this, we first randomly sample two 3D points in the point cloud and project them on the embedding space. We then compute an Euclidean distance between them. This process is repeated for the given number of iterations, and we select a $p$ value with the maximum distance.  
+
+
+
+\section{4.4 ANGULAR RAY PARAMETERIZATION  }
+
+
+Conventionally, ray parameterizations for unbounded scenes employ various distance metrics on $t$ of the ray function $\pmb{r}(t)$ to sample points on a ray Neff et al. (2021); Zhang et al. (2020); Barron et al. (2022). For example, $\mathrm{NeRF+}$ uses $t$ and an inverse distance from the scene origin for a foreground and a background region, respectively. In addition, DoNeRF adopts a logmetric distance, and mipNeRF 360 uses a disparity distance for the ray parameterization. However, our ray parameterization should consider a distortion of the embedding space to benefti from our mapping function due to its non-linearity. Without this consideration, the sampled points are likely to be biased. Fig. 4–(b) and (c) shows a toy example of a case where $p=2$ and the conventional ray parameterization Barron et al. (2022) is used. Since the parameterization is based on a uniform sampling with a normalized distance in the normal embedding space, it occurs over- and under-sampling if the ray origin is far from the scene origin.  
+
+![](images/ba6315c9a33b826e24c521ed8a909e303c3b07e394b42d55f59a56340e91ccc5.jpg)  
+Figure 4: (a) A visualization of the angular parameterization. $\theta$ is a parameter of the ray. (b) Each ray in the unbounded space passes through farther or closer to the scene origin. (c, d) Sampled points from the conventional normalized distance parameterization and ours.  
+
+We thus introduce a new ray parameterization that regards the distance between points in the distorted embedding space. Our idea is to use an angle based on the center of the projection $Q$ to preserve the relative distance between the points across varying manifold shapes. The angular ray parameterization is formulated as follows (see Fig. 4-(a)):  
+
+$$
+\frac{\theta}{\theta_{m a x}},\quad\theta=\stackrel{<}{\angle}(\,x-Q,\,o-Q\,),\quad\theta_{m a x}=\angle(\,d-Q,\,o-Q\,).
+$$  
+
+where $\theta$ is angle parameter of the ray and $\theta_{m a x}$ is a maximum value of $\theta$ . Intuitively, we can know $\theta_{m a x}=\angle(\,\bar{d}-\bar{Q_{,}}\,o-Q\,)$ (considering $\textbf{\em x}$ is extremely far from the ray origin $^o$ ). Therefore, the angular parameterization is a normalized interval which is $\frac{\theta}{\theta_{m a x}}\in[0,1)$ .  
+
+As shown in Fig. 4-(d), compared to the normalized distance approach, the uniform sampling on our angular parameterization has a more evenly-spaced interval in the embedding space. This indicates that our parameterization enable to avoid over- and under-sampling problems, even with the same number of samples.  
+
+
+
+\section{5 EXPERIMENT  }
+
+
+
+
+\section{5.1 COMPARISON OF OURS AND STATE-OF-THE-ART METHODS  }
+
+
+To demonstrate the generality and applicability of our method, we incorporate it into a variety of types of NeRF frameworks, including DVGO Sun et al. (2022); Cheng et al. (2022), TensoRF Chen et al. (2022a), iNGP M¨uller et al. (2022); Barron et al. (2023), and NeRF Mildenhall et al. (2020); Zhang et al. (2020). We just follow their own training configurations, such as the number of voxels, parameters, samples, and iterations. For the iNGP model, we use Zip-NeRF Barron et al. (2023) codebase and modify it similar to the original NeRF model Mildenhall et al. (2020); we utilize a na¨ıve sampling strategy and single evaluation on a coarse module. To balance the single evaluation, we double the number of samples on a ray. For the NeRF model, we double the number of samples as well and increase the number of hidden units to match the sample numbers and parameters as $\mathrm{NeRF+}$ . Please refer to the supplementary material for more details.  
+
+For our experiments, we use three datasets: two $360^{\circ}$ object-centric datasets–Tanks and Temples Zhang et al. (2020) and mip-NeRF 360 Barron et al. (2022)–and a free trajectory dataset, named Free Dataset Wang et al. (2023). To simulate the movement of cameras away from the scene origin, we adjust the camera’s position based on the boundary of $\mathbf{\nabla}x_{b}$ for the object-centric datasets, illustrated in Fig. 5. We consider two scenarios for the camera positions: the near and far boundary. Here, we use three quantitative metrics: PSNR, SSIM Wang et al. (2004), and LPIPS Zhang et al. (2018).  
+
+Since the NeRF frameworks used in this experiment are not designed to work in unbounded scenes, we embed the contract mapping and normalized ray parameterization Barron et al. (2022) into them for fair comparisons. As comparison methods, we additionally choose inverted sphere parameteriza  
+
+![](images/93288115cb8f52abfd0a8470c7d26b5bfb0c374ec177fcc47956a86d80750c16.jpg)  
+Figure 6: A comparison of ours and the contract mapping is the case of $\times2$ in the Tanks and Temples dataset. (a) The ground truth images. (b, c, d, e) From left to right, we embed the two mapping functions into the DVGO, TensoRF, iNGP, and NeRF models to test their generality and applicability. Our model shows impressive results, while the contract mapping fails to capture some fine detailed objects such as the pole and barricade.  
+
+tion Zhang et al. (2020) and F2-NeRF Zhang et al. (2020); Wang et al. (2023). Note that the inverted sphere parameterization only works in MLP-based models, and F2-NeRF does not provide any source code for the experiment on the Tanks and Temples dataset.   
+
+![](images/9b3d453a4898e19e4ff88003cf0c28e0e0cd73c101e21795bf7d64f3db2985d0.jpg)  
+
+Table 1: Quantitative evaluation on the MIP-360, Tanks and Temples and Free dataset. We embed the contract mapping and our method onto the four NeRF frameworks. The results of $\mathrm{NeRF+}$ and F2-NeRF are reproduced with publically available codes. The unit in PSNR is dB.  
+
+We report the quantitative evaluation in Table 1. Our method shows better performance overall, except in some cases of $\times1$ where $\times$ denotes the multiplier of the camera position from the scene origin. This can be attributed to the camera orientation: since the contract mapping does the identity mapping at the nearby regions, it works well if many objects are located in the regions. However, when the camera is positioned further from the scene origin (case $\times2)$ , all the comparison methods with the contract mapping face the challenge of representing unbounded scenes. In general, our mapping function is beneficial for the voxel based-mehods like DVGO and TensoRF. Since they use explicit correspondences between coordinates and features, the explicit representation can be evenly allocated in the embedding space through our mapping function. In practice, we have a limited capacity to express neural radiance fields, and our method enables to make maximum use of the capacity. DVGO and TensoRF exhibit a smaller performance degradation compared to iNGP and NeRF. This is because their extensive point sampling along rays mitigates the potential undersampling issue. Notably, in the $\times2$ case, the iNGP with the contract mapping struggles with scene optimization, which implies that it is not applicable for the hash-grid approach. In total, the comparison methods fail to efficiently allocate the representation capacity on the scenes.  
+
+In contrast, our method provides a distinctive advantage in the $\times2$ scenarios. As shown in Fig. 6, our method shows the promising performance for the distant objects. Thanks to the efficient capacity allocation of our mapping function, we can see clear rendering images that capture both the near and far poles well. A similar trend is observed for the Free dataset. Fig. 7 shows better results from ours than that of the comparison methods. Through the experiments using these public datasets, we confirm the importance of adaptive mapping and its ray parameterization.  
+
+![](images/073c25d0a7cb930223b4a1180741e569a49d20f54d19260b8a59705aa7580fdb.jpg)  
+Figure 7: A comparison result in the case of $\times1$ in the Free dataset. (a) Ground truth. (b) F2-NeRF (top) and Inverted sphere mapping (bottom). (c, d) When the contract mapping and our mapping is used for each baseline.  
+
+5.2 ABLATION STUDY   
+
+![](images/0b4864697c61908931e53e42d11f049855523b2c01272e328ef66efe92492514.jpg)  
+Table 2: Ablation study of the proposed method.  
+
+We demonstrate the effectiveness of our mapping function and ray parameterization. For this, we replace each component with the normalized ray parameterization and contract mapping in Barron et al. (2022). In addition, we automatically adjust the $p$ values to validate the advantage of the geometric-aware mapping strategy. We change the camera position to implement the various distribution of objects in the scene. In this study, a bicycle scene in the mip-NeRF 360 dataset is used.  
+
+As shown in Table 2, our mapping function and ray parameterization yield reasonable outcomes. When the $p$ value is large, the points will map more broadly to the scene origin in the bounded space. This means that more capacity is allocated to nearby objects. In this case, the nearby object means that they are close to the scene origin. The closer the camera is to the scene origin, the larger p value represents the near object better because it is more aligned with the camera. In particular, the further away the camera is from the scene origin, the better our method performs. Plus, when the proper $p$ value is determined via the RANSAC, the performance gap widens.  
+
+
+
+\section{6 COUCLUSION  }
+
+
+In this work, we numerically analyze the weakness of the existing mapping functions and present a novel $p$ -norm-based mapping function and an angular ray parameterization in consideration of scene geometry to handle a rending issue on unbounded scenes in NeRFs. In the experiment, we demonstrate the effectiveness of our method on various NeRF frameworks and achieve the stateof-the-art results by successfully synthesizing novel view images in challenging unbounded scene scenarios. For future work, our work has room for improvement with function designs that better optimize for scene geometry, object distribution and the position of scene origin  
+
+Limitation Although our method shows the state-of-the-art results, there are still rooms for improvement. First, if the camera position is extremely far from the scene origin, the model struggles to learn the scene. In addition, our ray parameterization samples more points in distant regions than in nearby regions, which is likely to miss near objects when the camera is far from the scene origin. For optimal $p$ values, we have plan to design an iterative approach. A region-aware $p$ value estimation is also an interesting future direction in consideration of a variety of distributions of objects and structures in a scene.  
+
+
+

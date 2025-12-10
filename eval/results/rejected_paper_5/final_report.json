@@ -1,0 +1,57 @@
+{
+  "title": "TabRepo: A Large Scale Repository of Tabular Model Evaluations and its AutoML Applications",
+  "authors": null,
+  "date_reviewed": "November 27, 2025",
+  "executive_summary": "This paper introduces TabRepo, a large-scale dataset comprising evaluations and predictions of numerous tabular models across a wide range of classification and regression datasets. The primary goal is to alleviate the computational burden associated with benchmarking and experimenting with tabular methods. The authors demonstrate how TabRepo can be leveraged to analyze hyperparameter optimization, ensembling techniques, and transfer learning approaches, offering a cost-effective alternative to traditional benchmarking methods.\n\nThe study showcases the effectiveness of transfer learning, specifically portfolio learning, using TabRepo, achieving state-of-the-art results compared to existing AutoML systems in terms of accuracy, runtime, and latency. The authors provide a comprehensive analysis of model performance, hyperparameter importance, and the impact of various factors on overall performance. TabRepo serves as a valuable resource for the machine learning community, enabling efficient exploration and experimentation in the field of tabular data modeling.",
+  "problem_statement": "The research addresses the problem of high computational costs associated with benchmarking and ablating tabular methods, which limits the exploration of research directions. Current benchmarks require significant CPU hours, restricting their frequent use and hindering rapid experimentation.",
+  "research_objectives": [
+    "Introduce TabRepo, a large-scale dataset of tabular model evaluations and predictions.",
+    "Demonstrate how TabRepo can be used to study the performance of tuning models and ensembling at a marginal cost by leveraging precomputed model predictions.",
+    "Show that TabRepo combined with transfer learning can achieve state-of-the-art results compared to AutoML systems in terms of accuracy and training time."
+  ],
+  "methodology": "The methodology involves creating TabRepo, a dataset with predictions and metrics for tabular models evaluated on classification and regression datasets. Models were evaluated using bagging. Hyperparameter Optimization (HPO) with ensemble was compared against AutoML systems using precomputed evaluations. Transfer learning techniques, specifically portfolio learning, were applied to leverage TabRepo. Model performance, runtime distributions, hyperparameter importance, and the impact of tuning and ensembling were analyzed. The anytime portfolio approach was evaluated in a leave-one-out setting.",
+  "key_results": "TabRepo enables studying the performance of tuning models and ensembling at marginal cost. Transfer learning with TabRepo outperforms state-of-the-art tabular systems in accuracy, runtime, and latency. Ensembling alone does not outperform AutoML systems. Hyperparameter importance analysis reveals key hyperparameters. A portfolio combined with ensembling outperforms AutoGluon for accuracy and latency. Performance improves with more datasets/configurations up to a saturation point. A portfolio of size 3 outperforms most AutoML systems, size 15 outperforms AutoGluon. The best ensemble performance is achieved with 15 iterations.",
+  "metrics": [
+    {
+      "name": "Normalized Error",
+      "value": "0.365 (Portfolio Ensemble)",
+      "explanation": "Relative distance to a topline loss compared to a baseline. Lower values indicate better performance."
+    },
+    {
+      "name": "Rank",
+      "value": "168.7 (Portfolio Ensemble)",
+      "explanation": "Average rank across all tasks. Lower values indicate better performance."
+    },
+    {
+      "name": "Time Fit (s)",
+      "value": "6275.5 (Portfolio Ensemble)",
+      "explanation": "Average training time in seconds."
+    },
+    {
+      "name": "Time Infer (s)",
+      "value": "0.050 (Portfolio Ensemble)",
+      "explanation": "Average inference time in seconds per data point."
+    }
+  ],
+  "strengths": [
+    "Introduction of a large-scale, publicly available dataset (TabRepo) for tabular model evaluations and predictions.",
+    "Comprehensive evaluation of various tabular models and AutoML systems.",
+    "Demonstration of the effectiveness of transfer learning with TabRepo for achieving state-of-the-art results.",
+    "Detailed analysis of model performance, hyperparameter importance, and the impact of ensembling.",
+    "Rigorous experimental setup with multiple datasets and seeds.",
+    "Analysis of the data needed for transfer learning to achieve strong results."
+  ],
+  "weaknesses": [
+    "Some models like TabPFN, FTTransformer and KNN had failures during the evaluation due to memory or implementation issues.",
+    "The reliance on a specific ensembling method (Caruana ensemble selection). Exploring other ensembling methods could potentially yield further improvements.",
+    "The computational cost, while reduced compared to full benchmarking, still exists for generating the TabRepo dataset itself."
+  ],
+  "conclusions": "TabRepo provides a valuable resource for tabular machine learning. Transfer learning with TabRepo offers a promising approach for state-of-the-art results. Ensembling and hyperparameter tuning alone are insufficient without transfer learning. The study provides insights into hyperparameter importance and performance impacts.",
+  "future_work": [
+    "Exploring other ensembling methods beyond Caruana ensemble selection.",
+    "Applying model-based or multi-fidelity approaches to generate configurations for model families.",
+    "Extending TabRepo with more datasets, models, and evaluations.",
+    "Analyzing the performance of different transfer learning techniques with TabRepo.",
+    "Investigating the use of TabRepo for other AutoML tasks, such as meta-learning and few-shot learning."
+  ]
+}

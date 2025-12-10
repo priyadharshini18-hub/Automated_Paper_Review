@@ -1,0 +1,153 @@
+\title{Network calibration under domain shift based on estimating the  target domain accuracy}
+
+\begin{abstract}
+In this study, we address the problem of calibrating network confidence while adapting a model that was originally trained on a source domain to a target domain using unlabeled samples from the target domain. The absence of labels from the target domain makes it impossible to directly calibrate the adapted network on the target domain.  To tackle this challenge, we introduce a calibration procedure that relies on estimating the network's accuracy on the target domain.  The network accuracy is first computed on the labeled source data and then is modified to represent the actual accuracy of the model on the target domain.  The proposed algorithm calibrates the prediction confidence directly in the target domain by minimizing the disparity between the estimated accuracy and the computed confidence. The experimental results show that our method significantly outperforms existing methods, which rely on importance weighting, across several standard datasets.
+\end{abstract}
+
+\section{1 INTRODUCTION  }
+
+
+Deep Neural Networks (DNN) have shown remarkable accuracy in tasks such as classification and detection when sufficient data and supervision are present. In practical applications, it is crucial for models not just to be accurate, but also to indicate how much confidence users should have in their predictions. DNNs generate confidence scores that can serve as a rough estimate of the likelihood of correct classification, but these scores do not guarantee a match with the actual probabilities (Guo et al., 2017). Neural networks tend to be overconfident in their predictions, despite having higher generalization accuracy, due to the possibility of overfitting on negative log-likelihood loss without affecting classification error (Guo et al., 2017; Lakshminarayanan et al., 2017; Hein et al., 2019). A classifier is said to be calibrated with respect to a dataset sampled from a given distribution if its predicted probability of being correct matches its true probability. Various methods have been introduced to address the issue of over-confidence. Network calibration can be performed in conjunction with training (see e.g. (Mukhoti et al., 2020; Mu¨ller et al., 2019; Zhang et al., 2022)). Post-hoc scaling methods for calibration, such as Platt scaling (Platt et al., 1999), isotonic regression (Zadrozny & Elkan, 2002), and temperature scaling (Guo et al., 2017), are commonly employed. These techniques apply calibration as post-processing, using a hold-out validation set to learn a calibration map that adjusts the model’s confidence in its predictions to become better calibrated.  
+
+The implementation of deep learning systems on real-world problems is hindered by the decrease in performance when a network trained on data from one domain is applied to data from a different domain. This is known as the domain shift problem. There are two main types of domain shift; namely, covariate shift (Sugiyama et al., 2007) and label shift (Lipton et al., 2018). In this study, we focus on covariate shift, a scenario where the distribution of features changes across domains, but the distribution of labels remains constant given the features, since it is more frequent in recognition tasks. In an Unsupervised Domain Adaptation (UDA) setup we assume the availability of data from the target domain but without annotation. There is a plethora of UDA methods that are based on strategies such as adversarial training methods that aim to align the distributions of the source and target domains (Ganin et al., 2016), or self-training algorithms that are based on computing pseudo labels for the target domain data (Zou et al., 2019).  
+
+Table 1: Comparison of calibration methods for unsupervised domain adaptation (UDA).   
+
+![](images/8792ad67e0a428eb6969c89f2c94c64e3c034bae04731164c585e8e0ab21ccbe.jpg)  
+
+In this study we tackle the problem of calibrating predicted probabilities when transferring a trained model from a source domain to a target domain without any given labels. Studies show that presentday UDA methods are prone to learning improved accuracy at the expense of deteriorated prediction confidence (Wang et al., 2020). Calibrating the confidence of the adapted model on data from the target domain is challenging due to the coexistence of the domain gap and the lack of target labels. Current calibration methods that are applied to the adapted model use the labeled validation set from the source domain for calibration (Park et al., 2020; Wang et al., 2020; Pampari & Ermon, 2020). They apply Importance Weighting (IW) to correct the shift from the source to the target by assigning higher weights to source examples that resemble those in the target domain. In practice, even after the domain adaptation process, the accuracy on the source domain where labels are available, is greater than the accuracy on the target domain. Hence, the accuracy estimation when calibrating the target domain using the source data is too optimistic. Calibrating neural networks is necessary because they are often overconfident in their predictions compared to their actual accuracy (Guo et al., 2017; Lakshminarayanan et al., 2017; Hein et al., 2019). If the accuracy is overestimated, it conceals the overconfidence issue, leading to a suboptimal temperature scaling value in the case of temperature scaling. Another drawback of IW methods is that they only use the unlabeled target data to train a binary source/target classifier that is used to set the weights of the source samples. However, the network confidence is independent of the true labels and can thus be directly computed on the target data.  
+
+We propose a UDA calibration method that computes the confidence and estimates the accuracy directly on the target domain. We first assess the accuracy in the target domain. Then we find calibration parameters that minimize the Expected Calibration Error (ECE) measure (Naeini et al., 2015) on the target domain. A comparison of typical calibration methods is shown in Table 1. Our major contributions include the following:  
+
+• We show that importance weighting relies on an overly optimistic estimation of the target accuracy and thus is not relevant for large covariate shift. • We propose a calibration method that is directly applied to the target domain data, based on a realistic estimation of the accuracy of the adapted model on the target domain.  
+
+We evaluated our UDA calibration algorithm on several standard domain adaptation benchmarks. The results of our approach on all benchmarks consistently outperform previous works, creating a new standard of calibrating networks for unsupervised domain adaptations.  
+
+
+
+\section{2 BACKGROUND  }
+
+
+Consider a network that classifies an input image $x$ into $k$ pre-defined categories. The last layer of the network is comprised of $k$ real numbers ${z\,=\,(z_{1},...,z_{k})}$ known as logits. Each of these numbers is the score for one of the $k$ possible classes. The logits are then converted into a soft decision distribution using a softmax layer: p(y = i|x) =  e xepx(pz(iz)j) where $x$ is the input image and $y$ is the image class. Despite having the mathematical form of a distribution, the output of the softmax layer does not necessarily represent the true posterior distribution of the classes, and the network often tends to be over-confidenct in its predictions (Guo et al., 2017; Lakshminarayanan et al., 2017; Hein et al., 2019). The predicted class is calculated from the output distribution by $\hat{y}\,=\,\arg\operatorname*{max}_{i}p(y\,=\,i|x)\,=\,\arg\operatorname*{max}_{i}\,z_{i}$ . The network confidence for this sample is defined by $\hat{p}\,=\,p(y\,=\,\hat{y}|x)\,=\,\operatorname*{max}_{i}{p(y\,=\,i|x)}$ . The network accuracy is defined by the probability that the most probable class $\hat{y}$ is indeed correct. The network is said to be calibrated if the estimated confidence coincides with the actual accuracy.  
+
+The Expected Calibration Error (ECE) (Naeini et al., 2015) is the standard metric used to measure model calibration. It is defined as the expected absolute difference between the model’s accuracy and its confidence. In practice, the ECE is computed on a given validation set $(x_{1},y_{1}),...,(x_{n},y_{n})$ . Denote the predictions and confidence values of the validation set by $(\hat{y}_{1},\hat{p}_{1}),...,(\hat{y}_{n},\hat{p}_{n})$ . To compute the ECE measure we first divide the unit interval $[0,1]$ into $M$ equal size bins $b_{1},...,b_{M}$ and let $\mathbf{\bar{{B}}}_{m}=\{t|\hat{p}_{t}\in{b}_{m}\}$ be the set of samples whose confidence values belong to bin $b_{m}$ . The network average accuracy at this bin is defined as $\begin{array}{r}{A_{m}=\frac{1}{|B_{m}|}\sum_{t\in B_{m}}\mathbb{1}\left(\hat{y}_{t}=y_{t}\right)\mathrm{~,~}}\end{array}$ , where $\mathbb{1}$ is the indicator function, and $y_{t}$ and $\hat{y}_{t}$ are the ground-truth and predicted labels for $x_{t}$ . The average confidence at bin $b_{m}$ is defined as $\begin{array}{r}{C_{m}\,=\,\frac{`_{1}}{|B_{m}|}\sum_{t\in B_{m}}\hat{p}_{t}}\end{array}$ . If the network is under-confident at bin $b_{m}$ then $A_{m}>C_{m}$ and vice-versa. The ECE is defined as follows:  
+
+$$
+\mathrm{ECE}=\sum_{m=1}^{M}\frac{\left|B_{m}\right|}{n}\left|A_{m}-C_{m}\right|.
+$$  
+
+The ECE is based on a uniform bin width. If the model is well-trained, most of the samples should lie within the highest confidence bins. Hence, the low confidence bins should be almost empty and therefore have no influence on the computed value of the ECE. For this reason, we can consider another metric, Adaptive ECE (adaECE) where the bin sizes are calculated so as to evenly distribute samples between bins (Nguyen & O’Connor, 2015):  
+
+$$
+\mathrm{{adaECE}}=\frac{1}{M}\sum_{m=1}^{M}|A_{m}-C_{m}|
+$$  
+
+such that each bin contains $1/M$ of the data points with similar confidence values.  
+
+Temperature Scaling (TS), is a standard, highly effective technique for calibrating the output distribution of a classification network (Guo et al., 2017). It uses a single parameter $T>0$ to rescale logit scores before applying the softmax function to compute the class distribution. Temperature scaling is expressed as follows:  
+
+$$
+p_{T}(y=i|x)={\frac{\exp(z_{i}/T)}{\sum_{j=1}^{k}\exp(z_{j}/T)}},\quad i=1,\ldots,k
+$$  
+
+s.t. $z_{1},...,z_{k}$ are the logit values obtained by applying the network to input vector $x$ . The optimal temperature $T$ for a trained model can be found by maximizing the log-likelihood $\textstyle\sum_{t}\log p_{T}(y_{t}|x_{t})$ for the held-out validation dataset. Studies show that finding the optimal $T$ by di rectly minimizing the ECE/adaECE measures yields better calibration results (Mukhoti et al., 2020). The adaECE measure was found to be much more robust and effective for calibration than ECE. In this study we used the adaECE for both calibration and evaluation.  
+
+
+
+\section{3 UNSUPERVISED TARGET DOMAIN CALIBRATION  }
+
+
+We first formulate the problem of calibration under distribution shift. Let $x$ denote the input to the classifier network and $y$ be its label. We are given a labeled source domain validation-set dataset, denoted as $\boldsymbol{S}=\{(\boldsymbol{x}_{s}^{i},\boldsymbol{y}_{s}^{i})\}_{i=1}^{n_{s}}$ with $n_{s}$ samples, and an unlabeled target domain dataset $\boldsymbol{\mathcal{T}}=\{x_{t}^{i}\}_{i=1}^{n_{t}}$ with $n_{t}$ samples. Adapting the network trained on the source domain to the target domain in an unsupervised manner without access to the labels can be achieved using various methods. Here, our goal is to calibrate the confidence of the adapted network prediction on samples from the target domain. For the sake of simplification, the adapted network will simply be referred to as the “network”, the source domain validation set data as the “source data”, and the unlabeled target domain data as the “target data”.  
+
+Our method involves calibrating the adapted network directly on the target data. It is based on the observation that when calibrating by minimizing the adaECE score, it is unnecessary to know whether each individual prediction is correct. Instead, we only need to know the mean accuracy for each bin. Fortunately, there are techniques which, given a trained network, can estimate the network accuracy on data samples from a new domain without access to their labels (Deng & Zheng, 2021; Guillory et al., 2021; Garg et al., 2022). In this study we use the accuracy estimation method described in (Deng & Zheng, 2021). Their method suggests learning a dataset-level regression problem. First, augment the source domain validation set, denoted by $D_{s}$ , using various visual transformations such as resizing, cropping, horizontal and vertical flipping, Gaussian blurring, and more. We then create $n$ meta-datasets, denoted as $D_{1},...,D_{n}$ (in our implementation we set $n=$ 50). This process preserves the labels and we can thus compute the model’s accuracy on these datasets denoted by $a_{1},...,a_{n}$ . Each dataset $D_{i}$ is represented as a Gaussian distribution using its mean vector $\mu_{i}$ and its diagonal covariance matrix $\Sigma_{i}$ . Let $F_{i}$ be the Fre´chet distance (Dowson & Landau, 1982) between the Gaussian representations of $D_{s}$ and $D_{i}$ . $F_{i}$ measures the domain gap between the original dataset $D_{s}$ and $D_{i}$ . Next, a linear regression model is fitted to the data set $(F_{1},a_{1}),...,(F_{n},a_{n})$ in the form of ${\hat{a}}=w\cdot F+b$ . Finally, the linear regression model is employed to predict the accuracy of the network on the unlabeled data from the target domain.  
+
+![](images/3024b5967eef04748647f315f8056f3d7e9fd23ff8dd1a8063c9ba1a9e7d9d42.jpg)  
+Figure 1: A scheme of the UTDC Calibration Framework.  
+
+We next suggest a simple, intuitive, and very effective method that calibrates the network directly on the target domain. We first compute the overall network accuracy on the source data $A_{\mathrm{source}}$ and apply (Deng & Zheng, 2021) to estimate the network accuracy on the target domain. Denote the estimated target accuracy by $\Tilde{A}_{\mathrm{target}}$ . Next, we divide the source data into $M$ equal-size bins according to their confidence values and compute the corresponding network accuracy $A_{\mathrm{source},m}$ at each bin $m$ . We also divide the target data into $M$ equal-size bins according to their confidence values and estimate the binwise accuracy of the target $A_{\mathrm{target},m}$ by rescaling the binwise accuracy on the source domain in the following way:  
+
+$$
+\tilde{A}_{\mathrm{target},m}=A_{\mathrm{source},m}\cdot\frac{\tilde{A}_{\mathrm{target}}}{A_{\mathrm{source}}},\qquad m=1,...,M.
+$$  
+
+The estimated network accuracy on the target data $\Tilde{A}_{\mathrm{target}}$ obtained by an unsupervised adaptation is usually smaller than its accuracy on the source data $A_{\mathrm{source}}$ . Thus, through this accuracy rescaling, we obtain a more realistic estimation of the bin-wise network average accuracy on the target data. Let $C_{\mathrm{target},m}$ be the bin-wise network average confidence values computed on the target data. Substituting the estimated accuracy term, based on the source labeled data (4) into the adaECE definition (2), yields the following adaECE measure for the target domain in a UDA setup:  
+
+$$
+\mathrm{UDA-adaECE}=\frac{1}{M}\sum_{m=1}^{M}\left|\tilde{A}_{\mathrm{target},m}-C_{\mathrm{target},m}\right|.
+$$  
+
+For each calibration method whose parameters can be found by minimizing the adaECE measure, we can form a UDA variant in which UDA-adaECE (5) is minimized instead of adaECE (2). Examples of these calibration methods include Temperature Scaling (TS), Vector Scaling, Matrix Scaling (Guo et al., 2017), Mix-n-Match (Zhang et al., 2020), Weight Scaling (Frenkel & Goldberger, 2022), and others.  
+
+We next demonstrate the UDA calibration principle in the case of TS calibration. We can determine the temperature that minimizes the UDA-adaECE measure (5) by conducting a grid search on the possible values. Given the division of the target data into bins, we can also compute the binwise average confidence after temperature calibration by $T$ on the target $C_{\mathrm{target},m}(T)$ . We can then define  
+
+
+
+\section{4 EXPERIMENTS  }
+
+
+In this section, we evaluate the capabilities of our UTDC technique to calibrate a network on a target domain after applying a UDA procedure.  
+
+Compared methods. We compared our method to six baselines: (1) Uncalibrated - The adapted classifier as is, without any post-hoc calibration; (2-4) Source-TS, Source-VS and source-MS - The adapted network was calibrated by either Temperature Scaling (TS) Vector Scaling (VS) or Matrix scaling (MS) (Guo et al., 2017) using the labeled validation set of the source domain; (5) CPCS (Park et al., 2020), and (6) TransCal (Wang et al., 2020), importance weighted UDA calibrators. We also report Oracle results where the calibration was applied to the labeled data from the target domain (denoted by Target-TS) and an Oracle version of our approach (denoted by $\mathrm{UTDC(^{*})})$ where we used the exact accuracy of the adapted model on the target data instead of estimating it. We used the adaECE measure computed on the test set of the target domain to evaluate calibration performance.  
+
+Datasets. We report experiments on two real-world domain adaptation benchmarks, Office-home (Venkateswara et al., 2017) and Office-31 (Saenko et al., 2010). Office-home includes four domains - Art, Real-World, Clipart and Product, represented as A, R, C, and P in the experiments. Office-31 contains three domains - Amazon, Webcam and DSLR, denoted as A, W, D.  
+
+Implementation details. We followed the experiment setup of Wang et al. (2020) and used their code to implement CPCS and TransCal baselines. Follwoing (Wang et al., 2020), we implemented three different UDA techniques; namely, DANN (Ganin et al., 2016), $\mathrm{DANN+E}$ and $\mathrm{CDAN+E}$ (Long et al., 2018). The performance of more recent UDA models (e.g. (Liang et al., 2021; Jin et al., 2020; Cui et al., 2020)) on the target domain of the evaluated datasets is slightly better but it is still much worse than the performance on the source domain. We provide a code implementation of our method for reproducibility https://anonymous.4open.science/r/unsupervised-target-domaincalibration.  
+
+Table 2: Adaptive ECE for top-1 predictions $(\sin\%)$ of Office-home, using 15 bins (with the lowest in bold ) on various UDA classification tasks and models with different calibration methods.   
+
+![](images/19c70eab95800a81b8868de5872ee4a45a07bf8286e406fb6c1782f8ed3148ac.jpg)  
+
+Table 3: Adaptive ECE for top-1 predictions $(\mathrm{in}\;\%)$ ) on Office-31 using 15 bins (with the lowest in bold) on various UDA classification tasks and models with different calibration methods.   
+
+![](images/b1cd328ad36d51779c520d9fbd120f5ddf9ba86edfb0cd8c80f12348920bafd8.jpg)  
+
+Calibration results. Tables 2 and 3 report the calibration results on Office-home and Office-31 respectively. The results show that UTDC achieved significantly better results than the baseline methods on both tasks. The calibration obtained by previous IW-based methods was slightly better (and in some cases even worse) than a network with no calibration or a network that was calibrated on the source domain. In contrast, the adaECE score obtained by UTDC was almost as good as the adaECE obtained by an oracle that had access to the labels of the domain samples. In addition to the adaECE evaluation measure, Table 4 evaluates the average calibration results over all Office-home tasks, using three other calibration metrics as follows, ECE, Negative Log-Likelihood (NLL) and Brier Score (BS) (Brier, 1950). We can see there the same trends.  
+
+Table 4: calibration metrics results of various UDA calibration methods on the Office-home tasks.   
+
+![](images/d24179ec4e7b1f891e9eaedb8d1a19fa3ed275ec83bbe368681a6c9bd6729c23.jpg)  
+
+Table 5: Computed temperature on various UDA Office-home tasks, and calibration methods using CDAN+E.   
+
+![](images/2e9feb7d19ca872cc9750bc15ed8a5e333b52536070eb0f81a6afaf553bd99b3.jpg)  
+
+![](images/f535f0e173bc25736191c8ff1e7ced6fdfa81b6a4a21e40ef566346bcec089a6.jpg)  
+Figure 2: Average accuracy on Office-home tasks for the three UDA techniques (DANN, $\mathrm{DANN+E}$ , $\mathrm{CDAN+E})$ ).  
+
+We next illustrate and analyze several key features of the proposed method.  
+
+Accuracy gap between source and target. To gain a better understanding of the reasons why our method performs better than IW based methods, we first show the accuracy of the adapted models on the source and target domains. Fig. 2 presents the accuracy on the source and target domains for three UDA techniques. It shows that even after adaptation to the target, the model’s performance on the source samples is consistently better than its performance on the target samples, especially in cases of large domain gaps. Hence, using the network accuracy on the source to estimate the network’s accuracy on the target while minimizing the ECE measure, is misleading. The over-optimistic accuracy estimation leads to a scaling temperature that is too small. Table  
+
+![](images/da226553bfb4f1fdb04c59f2e109a9e26873261e86df5aac3a740a062c1063ea.jpg)  
+Figure 3: adaECE results as a function of the correction ratio $R$ on Office-Home, $A\rightarrow C$ task.  
+
+5 compares the optimal temperatures computed by the calibration methods. In all the baseline methods the computed calibration temperature was lower than the optimal value. This results in a poorer calibration performance as seen in Tables 2 and 3. By contrast, the temperature computed by all the UTDC variants was much closer to the optimal temperature computed by the Oracle method which had access to the target labels. Fig. 2 also presents the estimated accuracy of the adapted model on the target domain. This estimation is close to the true accuracy. Thus, when it is combined with the confidence computed on the target domain, we can obtain a calibrated mode.  
+
+Sensitivity of UTDC to the target accuracy prediction. UTDC is based on estimating the binwise average network accuracy on the target domain data from the labeled source domain data. This estimation is done by computing the ratio $\tilde{A}_{\mathrm{target}}/A_{\mathrm{source}}$ between the estimated target accuracy and the source accuracy. We next analyze the sensitivity of our calibration method to errors in estimating $A_{\mathrm{target}}$ . Let $R(\mathrm{true})\,=\,A_{\mathrm{target}}/A_{\mathrm{source}}$ and $R(\mathrm{estimated})=\tilde{A}_{\mathrm{target}}/A_{\mathrm{source}}$ be the true and estimated ratio used by $\mathrm{UTDC(^{*})}$ and UTDC respectively. In principle, every number $0<R$ can be used to obtain an estimation of the binwise target accuracy: $\tilde{A_{\mathrm{target},m}}\;=\;A_{\mathrm{source},m}\cdot R$ . We can thus find the temperature that minimizes the adaECE function on the target data as a function of $R$ : ${\hat{T}}(R)=\arg\operatorname*{min}_{T}$ adaECER(T) where  
+
+$$
+\mathrm{adaECE}_{R}(T)=\frac{1}{M}\sum_{m=1}^{M}|A_{\mathrm{source},m}\cdot R-C_{\mathrm{target},m}(T)|\,.
+$$  
+
+Fig. 3 shows the adaECE measure on the target data after temperature scaling by ${\hat{T}}(R)$ as a function of the ratio $R$ for the task Office-home $A\rightarrow C$ . It shows that with the appropriate choice of $R$ we can achieve the calibration level of the Oracle TS-target algorithm (the case in which target labels are known). This means that the accuracy difference is indeed the main reason for the calibration degradation caused by methods that try to calibrate the target domain using the source data. Specifically, as the ratio $R$ drops towards $R(\mathrm{true})$ , the adaECE improves and approaches the Oracle TS-target calibration. In addition, the adaECE reaches a minimum near $R(\mathrm{true})$ and $R$ (estimated). Finally, there is a range of correction ratios in which UTDC is better by a large margin as compared to other baselines, thus providing a tolerance for error and resilience in estimating $\breve{\tilde{A}}_{\mathrm{target}}$ .  
+
+The problem with the IW assumption. We showed that our method achieves better results by explicitly addressing the accuracy gap between source and target domains caused by the domain shift. Previous methods based on importance weights Park et al. (2020); Wang et al. (2020), relied on re-weighting source data based on their proximity to the target data, i.e., concentrating on source samples that resemble the target and attributing less attention to others. We computed the target similarity weights associated with each sample in the source validation set and divided them into $20\%$ percentile subsets. Fig 4 shows the average accuracy of each group and the average target accuracy. It shows that the source accuracy is similar in all bins regardless of the similarity to the target. Thus the IW assumption that source samples that are classified as targets are more relevant for calibrating the target prediction is wrong.  
+
+Accuracy ratio across bins. Our method computes $\Tilde{A}_{t a r g e t,m}$ by re-scaling $A_{s o u r c e,m}$ with the same ratio for all bins, as defined in Eq. 4. This estimation is based on the assumption that the accuracy ratio between source and target is similar across the bins. To illustrate the validity of this assumption, Fig. 5 shows the accuracy of the adapted network at each bin, for the source and target data.  
+
+![](images/911735760e26e9a5c8ac3676634948fcb8607c809c87343cdc5cca21c8cf2ce9.jpg)  
+Figure 4: Accuracy of $k$ -th percentile source images based on their probability to be classified as target Wang et al. (2020), compared to target accuracy (Office-home, $A\rightarrow C$ ).  
+
+![](images/be34d00b41a2566d962221d4232a57d7ea3affea8a3f229343758d4b76df4b10.jpg)  
+Figure 5: Accuracy per bin for source and target images. The results are shown on the Office-home $C\rightarrow P$ task.  
+
+
+
+\section{5 CONCLUSION  }
+
+
+To conclude, in this work, we considered the problem of network calibration in an unsupervised domain adaptation setup. We first saw that the main problem with calibration using the labeled data from the source domain is the accuracy difference between the domains. We then shawed that methods which are based on importance weighting do not address this problem, which causes them to fail. Our key idea with respect to previous methods is adapting the over-optimistic accuracy estimation performed on the labeled data from the source domain to the actual accuracy of the adapted model on the target domain, and calibrating directly over the target examples. We compared this solution to previous methods and showed that we consistently and significantly improved the calibration results on the target domain. We concentrated here on parametric calibration methods of classification tasks under domain shift. Possible future research directions are applying similar strategies to domain shift problems in regression and segmentation tasks and to domain shift problems in non-paramteric calibration methods such as conformal prediction.  
+
+
+
+

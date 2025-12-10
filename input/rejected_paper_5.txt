@@ -324,3 +324,8 @@ Next, we investigate the impact of the portfolio size in Fig. \ref{fig:sensitivi
 
 Finally, we investigate the impact of the number of selected models in the ensemble defined in Eq. \ref{eq:caruana} in Fig. \ref{fig:sensitivity}d.
 While AutoML systems typically use large values (for instance AutoGluon uses 100 iterations), we demonstrate that the best performance is achieved at a mere 15 iterations, with more iterations having no measurable improvement.
+
+
+
+
+
