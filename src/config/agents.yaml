@@ -7,7 +7,7 @@
 # #   backstory: >
 # #     You have expertise in extracting and preprocessing data using PDF files.
 # #     You have to scrape the text from the research paper {pdf_path} and your output will be used to create a summary of the paper.
-# #   llm: groq/llama-3.3-70b-versatile #Smaller groq model
+# #   llm: openai/gpt-4o-mini #Smaller groq model
 
 summarizer_agent:
   role: >
@@ -17,7 +17,7 @@ summarizer_agent:
   backstory: >
     You have years of experience reading and analyzing academic research papers across various domains.
     You excel at identifying key components of research papers and distilling complex technical content into clear, concise summaries.
-  llm: gemini/gemini-2.0-flash
+  llm: openai/gpt-4o-mini
 
 
 critique_agent:
@@ -29,7 +29,7 @@ critique_agent:
   backstory: >
     You have decades of experience as a peer reviewer for top-tier academic journals.
     You provide clear, constructive feedback and cite specific passages to support your evaluation.
-  llm: gemini/gemini-2.0-flash
+  llm: openai/gpt-4o-mini
 
 
 synthesizer_agent:
@@ -39,7 +39,7 @@ synthesizer_agent:
     Create a professional, comprehensive paper review report in JSON format based on the paper text, summaries, and critique feedback.
   backstory: >
     You are a seasoned technical writer who specializes in creating polished, publication-ready research reports.
-  llm: gemini/gemini-2.0-flash
+  llm: openai/gpt-4o-mini
 
 
 # Commented out for eval - not generating PDFs
@@ -50,4 +50,4 @@ synthesizer_agent:
 #     Convert the final JSON report to a professionally formatted PDF file.
 #   backstory: >
 #     You specialize in document conversion and formatting, ensuring reports are transformed into polished PDF documents.
-#   llm: gemini/gemini-2.0-flash
+#   llm: openai/gpt-4o-mini
